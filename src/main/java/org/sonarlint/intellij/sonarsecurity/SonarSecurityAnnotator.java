@@ -56,7 +56,8 @@ public class SonarSecurityAnnotator implements Annotator {
   private void handleMethodConfig(JsonConfigDeserializer.MethodConfig[] configs, String psiMethodId, AnnotationHolder holder, String configType, String ruleKey, PsiMethod method) {
     if (configs != null) {
       for (JsonConfigDeserializer.MethodConfig config : configs) {
-        if (config.methodId.equals(psiMethodId)) {
+        if ((config.isMethodPrefix && psiMethodId.startsWith(config.methodId))
+                || config.methodId.equals(psiMethodId)) {
           createAnnotation(holder, method, configType, ruleKey);
         }
       }
