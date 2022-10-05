@@ -188,6 +188,16 @@
         <externalAnnotator language="Scala" implementationClass="org.sonarlint.intellij.editor.SonarExternalAnnotator"/>
         <externalAnnotator language="Swift" implementationClass="org.sonarlint.intellij.editor.SonarExternalAnnotator"/>
 
+        <annotator
+                language="JAVA"
+                implementationClass="org.sonarlint.intellij.sonarsecurity.SonarSecurityAnnotator"/>
+        <annotator
+                language="Python"
+                implementationClass="org.sonarlint.intellij.sonarsecurity.SonarSecurityAnnotator"/>
+        <annotator
+                language="JavaScript"
+                implementationClass="org.sonarlint.intellij.sonarsecurity.SonarSecurityAnnotator"/>
+
         <applicationService serviceInterface="org.sonarlint.intellij.core.server.events.ServerEventsService"
                             serviceImplementation="org.sonarlint.intellij.core.server.events.ServerEventsProductionService"
                             testServiceImplementation="org.sonarlint.intellij.util.ServerEventsNoOpService"/>
