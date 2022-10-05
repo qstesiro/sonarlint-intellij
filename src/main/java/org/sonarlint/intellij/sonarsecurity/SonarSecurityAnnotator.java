@@ -44,19 +44,29 @@ public class SonarSecurityAnnotator implements Annotator {
     String methodId = toMethodId(method);
 
     rulesConfig.forEach((key, config) -> {
-      if (config.sinks != null) {
-        for (JsonConfigDeserializer.MethodConfig sink : config.sinks) {
-          if (sink.methodId.equals(methodId)) {
-            createAnnotation(holder, method, "sink");
-          }
-        }
-      }
+      handleMethodConfig(config.sinks, methodId, holder, "sink", key, method);
+      handleMethodConfig(config.sources, methodId, holder, "source", key, method);
+      handleMethodConfig(config.sanitizers, methodId, holder, "sanitizer", key, method);
+      handleMethodConfig(config.passthroughs, methodId, holder, "passthrough", key, method);
+      handleMethodConfig(config.validators, methodId, holder, "validator", key, method);
     });
 
   }
 
-  private static void createAnnotation(@NotNull AnnotationHolder holder, PsiMethod method, String type) {
-    holder.newAnnotation(HighlightSeverity.WARNING, "This is a " + type)
+  private void handleMethodConfig(JsonConfigDeserializer.MethodConfig[] configs, String psiMethodId, AnnotationHolder holder, String configType, String ruleKey, PsiMethod method) {
+    if (configs != null) {
+      for (JsonConfigDeserializer.MethodConfig config : configs) {
+        if (config.methodId.equals(psiMethodId)) {
+          createAnnotation(holder, method, configType, ruleKey);
+        }
+      }
+    }
+
+  }
+
+
+  private static void createAnnotation(@NotNull AnnotationHolder holder, PsiMethod method, String type, String ruleKey) {
+    holder.newAnnotation(HighlightSeverity.WARNING, "This is a " + type + " for " + ruleKey)
             .range(method.getNameIdentifier().getTextRange())
             .textAttributes(CodeInsightColors.WARNINGS_ATTRIBUTES)
             .highlightType(ProblemHighlightType.WEAK_WARNING)
