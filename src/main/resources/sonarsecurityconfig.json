@@ -1,0 +1,79 @@
+{
+  "S3649": {
+    "sources": [
+      {
+        "methodId": "org.mycompany.ServerRequest#getQuery()Ljava/lang/String;"
+      }
+    ],
+    "sanitizers": [
+      {
+        "methodId": "org.mycompany.StringUtils#stringReplace(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;",
+        "args": [
+          2
+        ]
+      }
+    ],
+    "validators": [
+      {
+        "methodId": "org.mycompany.StringUtils#equals(Ljava/lang/String;)Z",
+        "args": [
+          1
+        ]
+      }
+    ],
+    "passthroughs": [
+      {
+        "methodId": "org.mycompany.RawUrl#<init>(Ljava/lang/String;)V",
+        "isWhitelist": true,
+        "args": [
+          1
+        ]
+      }
+    ],
+    "sinks": [
+      {
+        "methodId": "org.mycompany.MySql#query(Ljava/lang/String;)V",
+        "args": [
+          1
+        ]
+      },
+      {
+        "methodId": "org.mycompany.SqlStatement#execute",
+        "isMethodPrefix": true,
+        "args": [
+          0,
+          1
+        ]
+      },
+      {
+        "methodId": "org.mycompany.SqlStatement#run(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
+        "interval": {
+          "fromIndex": 1
+        }
+      }
+    ]
+  },
+  "S5131": {
+    "sources": [
+      {
+        "methodId": "org.mycompany.ServerRequest#getQueryString()Ljava/lang/String;"
+      }
+    ],
+    "sinks": [
+      {
+        "methodId": "org.mycompany.Server#write(",
+        "isMethodPrefix": true,
+        "interval": {
+          "fromIndex": 1
+        }
+      }
+    ]
+  },
+  "common": {
+    "sources": [
+      {
+        "methodId": "org.mycompany.Input#getUserInput()Ljava/lang/String;"
+      }
+    ]
+  }
+}

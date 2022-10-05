@@ -15,9 +15,21 @@ import com.intellij.psi.PsiMethod;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.signature.SignatureWriter;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.Map;
+
 import static com.intellij.openapi.editor.colors.TextAttributesKey.createTextAttributesKey;
 
 public class SonarSecurityAnnotator implements Annotator {
+
+  static Map<String, JsonConfigDeserializer.RuleConfig> rulesConfig;
+
+  static {
+    var is = SonarSecurityAnnotator.class.getResourceAsStream("/sonarsecurityconfig.json");
+    rulesConfig = new JsonConfigDeserializer().deserialize(new InputStreamReader(is));
+  }
+
 
 
   @Override
@@ -29,28 +41,33 @@ public class SonarSecurityAnnotator implements Annotator {
 
     PsiMethod method = (PsiMethod) element;
 
+    String methodId = toMethodId(method);
 
-    PsiClass containingClass = method.getContainingClass();
+    rulesConfig.forEach((key, config) -> {
+      if (config.sinks != null) {
+        for (JsonConfigDeserializer.MethodConfig sink : config.sinks) {
+          if (sink.methodId.equals(methodId)) {
+            createAnnotation(holder, method, "sink");
+          }
+        }
+      }
+    });
 
-    String qualifiedName = containingClass.getQualifiedName();
-
-    String methodAsmSignature = MapPsiToAsmDesc.INSTANCE.methodDesc(method);
-
-
-    if (method.getName().contains("sink")) {
-      holder.newAnnotation(HighlightSeverity.WARNING, "This is a sink!!! " + qualifiedName + "#" + method.getName() + methodAsmSignature)
-              .range(method.getNameIdentifier().getTextRange())
-              .textAttributes(CodeInsightColors.WARNINGS_ATTRIBUTES)
-              .highlightType(ProblemHighlightType.WEAK_WARNING)
-              .create();
-    }
-    if (method.getName().contains("source")) {
-      holder.newAnnotation(HighlightSeverity.WARNING, "This is a source!!!" + qualifiedName)
-              .range(method.getNameIdentifier().getTextRange())
-              .textAttributes(CodeInsightColors.WARNINGS_ATTRIBUTES)
-              .highlightType(ProblemHighlightType.WEAK_WARNING)
-              .create();
-    }
   }
+
+  private static void createAnnotation(@NotNull AnnotationHolder holder, PsiMethod method, String type) {
+    holder.newAnnotation(HighlightSeverity.WARNING, "This is a " + type)
+            .range(method.getNameIdentifier().getTextRange())
+            .textAttributes(CodeInsightColors.WARNINGS_ATTRIBUTES)
+            .highlightType(ProblemHighlightType.WEAK_WARNING)
+            .create();
+  }
+
+  private String toMethodId(PsiMethod psiMethod) {
+      PsiClass containingClass = psiMethod.getContainingClass();
+      String qualifiedName = containingClass.getQualifiedName();
+      String methodAsmSignature = MapPsiToAsmDesc.INSTANCE.methodDesc(psiMethod);
+      return qualifiedName + "#" + psiMethod.getName() + methodAsmSignature;
+    }
 
 }
