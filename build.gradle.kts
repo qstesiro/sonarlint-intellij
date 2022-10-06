@@ -103,12 +103,13 @@ intellij {
     version.set(intellijBuildVersion)
     pluginName.set("sonarlint-intellij")
     updateSinceUntilBuild.set(false)
-    plugins.set(listOf("java", "git4idea"))
+    plugins.set(listOf("java", "git4idea", "PythonCore:222.4345.14"))
 }
 
 tasks.runPluginVerifier {
     // Test oldest supported, and latest
-    ideVersions.set(listOf("IC-2020.3.4", "IC-2021.3"))
+//    ideVersions.set(listOf("IC-2020.3.4", "IC-2021.3"))
+    ideVersions.set(listOf("2022.2.3"))
     failureLevel.set(
         EnumSet.complementOf(
             EnumSet.of(
@@ -180,6 +181,7 @@ dependencies {
     testImplementation("org.mockito:mockito-core:4.8.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
     testImplementation("org.eclipse.jetty:jetty-server:$jettyVersion")
+    testImplementation("org.eclipse.jetty:jetty-servlet:$jettyVersion")
     testImplementation("org.eclipse.jetty:jetty-servlet:$jettyVersion")
     testImplementation("org.eclipse.jetty:jetty-proxy:$jettyVersion")
     "sqplugins"("org.sonarsource.java:sonar-java-plugin:7.13.0.29990")

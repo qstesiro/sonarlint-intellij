@@ -1,52 +1,58 @@
 package org.sonarlint.intellij.sonarsecurity;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.Annotator;
 import com.intellij.lang.annotation.HighlightSeverity;
-import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
 import com.intellij.openapi.editor.colors.CodeInsightColors;
-import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 import com.intellij.psi.util.ClassUtil;
+import com.intellij.psi.util.QualifiedName;
+import com.jetbrains.python.psi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.objectweb.asm.signature.SignatureWriter;
 
-import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.Map;
 
-import static com.intellij.openapi.editor.colors.TextAttributesKey.createTextAttributesKey;
-
 public class SonarSecurityAnnotator implements Annotator {
 
-    static Map<String, JsonConfigDeserializer.RuleConfig> rulesConfig;
+    static Map<String, JsonConfigDeserializer.RuleConfig> javaRulesConfig;
+    static Map<String, JsonConfigDeserializer.RuleConfig> pythonRulesConfig;
 
     static {
         var is = SonarSecurityAnnotator.class.getResourceAsStream("/sonarsecurityconfig.json");
-        rulesConfig = new JsonConfigDeserializer().deserialize(new InputStreamReader(is));
+        javaRulesConfig = new JsonConfigDeserializer().deserialize(new InputStreamReader(is));
+
+        var pyIs = SonarSecurityAnnotator.class.getResourceAsStream("/sonarsecurityconfig_python.json");
+        pythonRulesConfig = new JsonConfigDeserializer().deserialize(new InputStreamReader(pyIs));
     }
 
 
     @Override
     public void annotate(@NotNull final PsiElement element, @NotNull AnnotationHolder holder) {
+
         if ((element instanceof PsiMethod)) {
             PsiMethod method = (PsiMethod) element;
-            processingMethodId(holder, toMethodId(method), method.getNameIdentifier().getTextRange());
+            processingMethodId(holder, toMethodId(method), method.getNameIdentifier().getTextRange(), javaRulesConfig);
         } else if ((element instanceof PsiCall)) {
             PsiCall methodCall = (PsiCall) element;
-            processingMethodId(holder, toMethodId(methodCall), methodCall.getTextRange());
+            processingMethodId(holder, toMethodId(methodCall), methodCall.getTextRange(), javaRulesConfig);
         } else if ((element instanceof PsiMethodReferenceExpression)) {
             PsiMethodReferenceExpression methodRef = (PsiMethodReferenceExpression) element;
-            processingMethodId(holder, toMethodId(methodRef), methodRef.getTextRange());
+            processingMethodId(holder, toMethodId(methodRef), methodRef.getTextRange(), javaRulesConfig);
+        } else if ((element instanceof PyFunction)) {
+            PyFunction pyFn = (PyFunction) element;
+            processingMethodId(holder, toMethodId(pyFn), pyFn.getTextRange(), pythonRulesConfig);
+        } else if ((element instanceof PyCallExpression)) {
+            PyCallExpression pyCallExp = (PyCallExpression) element;
+             processingMethodId(holder, toMethodId(pyCallExp), pyCallExp.getTextRange(), pythonRulesConfig);
         }
     }
 
-    private void processingMethodId(@NotNull AnnotationHolder holder, @Nullable String methodId, TextRange range) {
+    private void processingMethodId(@NotNull AnnotationHolder holder, @Nullable String methodId, TextRange range,
+                                    Map<String, JsonConfigDeserializer.RuleConfig> rulesConfig) {
         if (methodId == null) {
             return;
         }
@@ -109,5 +115,20 @@ public class SonarSecurityAnnotator implements Annotator {
         return null;
     }
 
+    private String toMethodId(PyFunction fn){ return fn.getQualifiedName(); }
+
+    private String toMethodId(PyCallExpression pyCallExp){
+        PyExpression callee = pyCallExp.getCallee();
+
+        String name = null;
+        if (callee instanceof PyReferenceExpression){
+            PyReferenceExpression refExp = (PyReferenceExpression)callee;
+            QualifiedName qn = refExp.asQualifiedName();
+            if (qn != null){
+                name = qn.toString();
+            }
+        }
+        return name;
+    }
 
 }

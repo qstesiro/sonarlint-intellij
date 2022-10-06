@@ -1,0 +1,79 @@
+{
+  "S3649": {
+    "sources": [
+      {
+        "methodId": "my.namespace.ServerRequest.get_query"
+      }
+    ],
+    "sanitizers": [
+      {
+        "methodId": "str_replace",
+        "args": [
+          1
+        ]
+      }
+    ],
+    "validators": [
+      {
+        "methodId": "my.namespace.regex.matches",
+        "args": [
+          1
+        ]
+      }
+    ],
+    "passthroughs": [
+      {
+        "methodId": "my.namespace.RawUrl",
+        "isWhitelist": true,
+        "args": [
+          1
+        ]
+      }
+    ],
+    "sinks": [
+      {
+        "methodId": "mysql_query",
+        "args": [
+          1
+        ]
+      },
+      {
+        "methodId": "my.namespace.SqlStatement.execute",
+        "isMethodPrefix": true,
+        "args": [
+          0,
+          1
+        ]
+      },
+      {
+        "methodId": "my.namespace.SqlStatement.run",
+        "interval": {
+          "fromIndex": 1
+        }
+      }
+    ]
+  },
+  "S5131": {
+    "sources": [
+      {
+        "methodId": "my.namespace.ServerRequest.get_query_string"
+      }
+    ],
+    "sinks": [
+      {
+        "methodId": "my.namespace.Server.write(",
+        "isMethodPrefix": true,
+        "interval": {
+          "fromIndex": 1
+        }
+      }
+    ]
+  },
+  "common": {
+    "sources": [
+      {
+        "methodId": "my.namespace.Input.get_input"
+      }
+    ]
+  }
+}
