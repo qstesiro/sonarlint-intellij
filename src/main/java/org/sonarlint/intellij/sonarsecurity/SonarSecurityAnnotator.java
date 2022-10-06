@@ -9,10 +9,11 @@ import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
 import com.intellij.openapi.editor.colors.CodeInsightColors;
 import com.intellij.openapi.editor.colors.TextAttributesKey;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiMethod;
+import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.*;
+import com.intellij.psi.util.ClassUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.signature.SignatureWriter;
 
 import java.io.BufferedReader;
@@ -23,62 +24,77 @@ import static com.intellij.openapi.editor.colors.TextAttributesKey.createTextAtt
 
 public class SonarSecurityAnnotator implements Annotator {
 
-  static Map<String, JsonConfigDeserializer.RuleConfig> rulesConfig;
+    static Map<String, JsonConfigDeserializer.RuleConfig> rulesConfig;
 
-  static {
-    var is = SonarSecurityAnnotator.class.getResourceAsStream("/sonarsecurityconfig.json");
-    rulesConfig = new JsonConfigDeserializer().deserialize(new InputStreamReader(is));
-  }
-
-
-
-  @Override
-  public void annotate(@NotNull final PsiElement element, @NotNull AnnotationHolder holder) {
-    // Ensure the Psi Element is an expression
-    if (!(element instanceof PsiMethod)) {
-      return;
+    static {
+        var is = SonarSecurityAnnotator.class.getResourceAsStream("/sonarsecurityconfig.json");
+        rulesConfig = new JsonConfigDeserializer().deserialize(new InputStreamReader(is));
     }
 
-    PsiMethod method = (PsiMethod) element;
 
-    String methodId = toMethodId(method);
-
-    rulesConfig.forEach((key, config) -> {
-      handleMethodConfig(config.sinks, methodId, holder, "sink", key, method);
-      handleMethodConfig(config.sources, methodId, holder, "source", key, method);
-      handleMethodConfig(config.sanitizers, methodId, holder, "sanitizer", key, method);
-      handleMethodConfig(config.passthroughs, methodId, holder, "passthrough", key, method);
-      handleMethodConfig(config.validators, methodId, holder, "validator", key, method);
-    });
-
-  }
-
-  private void handleMethodConfig(JsonConfigDeserializer.MethodConfig[] configs, String psiMethodId, AnnotationHolder holder, String configType, String ruleKey, PsiMethod method) {
-    if (configs != null) {
-      for (JsonConfigDeserializer.MethodConfig config : configs) {
-        if ((config.isMethodPrefix && psiMethodId.startsWith(config.methodId))
-                || config.methodId.equals(psiMethodId)) {
-          createAnnotation(holder, method, configType, ruleKey);
+    @Override
+    public void annotate(@NotNull final PsiElement element, @NotNull AnnotationHolder holder) {
+        if ((element instanceof PsiMethod)) {
+            PsiMethod method = (PsiMethod) element;
+            processingMethodId(holder, toMethodId(method), method.getNameIdentifier().getTextRange());
+        } else if ((element instanceof PsiCall)) {
+            PsiCall methodCall = (PsiCall) element;
+            processingMethodId(holder, toMethodId(methodCall), methodCall.getTextRange());
         }
-      }
     }
 
-  }
-
-
-  private static void createAnnotation(@NotNull AnnotationHolder holder, PsiMethod method, String type, String ruleKey) {
-    holder.newAnnotation(HighlightSeverity.WARNING, "This is a " + type + " for " + ruleKey)
-            .range(method.getNameIdentifier().getTextRange())
-            .textAttributes(CodeInsightColors.WARNINGS_ATTRIBUTES)
-            .highlightType(ProblemHighlightType.WEAK_WARNING)
-            .create();
-  }
-
-  private String toMethodId(PsiMethod psiMethod) {
-      PsiClass containingClass = psiMethod.getContainingClass();
-      String qualifiedName = containingClass.getQualifiedName();
-      String methodAsmSignature = MapPsiToAsmDesc.INSTANCE.methodDesc(psiMethod);
-      return qualifiedName + "#" + psiMethod.getName() + methodAsmSignature;
+    private void processingMethodId(@NotNull AnnotationHolder holder, @Nullable String methodId, TextRange range) {
+        if (methodId == null) {
+            return;
+        }
+        rulesConfig.forEach((key, config) -> {
+            handleMethodConfig(config.sinks, methodId, holder, "sink", key, range);
+            handleMethodConfig(config.sources, methodId, holder, "source", key, range);
+            handleMethodConfig(config.sanitizers, methodId, holder, "sanitizer", key, range);
+            handleMethodConfig(config.passthroughs, methodId, holder, "passthrough", key, range);
+            handleMethodConfig(config.validators, methodId, holder, "validator", key, range);
+        });
     }
+
+    private void handleMethodConfig(JsonConfigDeserializer.MethodConfig[] configs, String psiMethodId, AnnotationHolder holder, String configType, String ruleKey, TextRange range) {
+        if (configs != null) {
+            for (JsonConfigDeserializer.MethodConfig config : configs) {
+                if ((config.isMethodPrefix && psiMethodId.startsWith(config.methodId))
+                        || config.methodId.equals(psiMethodId)) {
+                    createAnnotation(holder, range, configType, ruleKey);
+                }
+            }
+        }
+
+    }
+
+
+    private static void createAnnotation(@NotNull AnnotationHolder holder, TextRange range, String type, String ruleKey) {
+        holder.newAnnotation(HighlightSeverity.WARNING, "This is a " + type + " for " + ruleKey)
+                .range(range)
+                .textAttributes(CodeInsightColors.WARNINGS_ATTRIBUTES)
+                .highlightType(ProblemHighlightType.WEAK_WARNING)
+                .create();
+    }
+
+    private String toMethodId(PsiMethod psiMethod) {
+        String asmSignature = ClassUtil.getAsmMethodSignature(psiMethod);
+
+        PsiClass containingClass = psiMethod.getContainingClass();
+        String qualifiedName = containingClass.getQualifiedName();
+        String methodName = psiMethod.isConstructor() ? "<init>" : psiMethod.getName();
+        return qualifiedName + "#" + methodName + asmSignature;
+    }
+
+    @Nullable
+    private String toMethodId(PsiCall psiCall) {
+        var psiMethod = psiCall.resolveMethod();
+        // Can be null for default constructors
+        if (psiMethod != null) {
+            return toMethodId(psiMethod);
+        }
+        return null;
+    }
+
 
 }
