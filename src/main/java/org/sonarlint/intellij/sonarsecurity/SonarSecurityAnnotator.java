@@ -40,6 +40,9 @@ public class SonarSecurityAnnotator implements Annotator {
         } else if ((element instanceof PsiCall)) {
             PsiCall methodCall = (PsiCall) element;
             processingMethodId(holder, toMethodId(methodCall), methodCall.getTextRange());
+        } else if ((element instanceof PsiMethodReferenceExpression)) {
+            PsiMethodReferenceExpression methodRef = (PsiMethodReferenceExpression) element;
+            processingMethodId(holder, toMethodId(methodRef), methodRef.getTextRange());
         }
     }
 
@@ -92,6 +95,16 @@ public class SonarSecurityAnnotator implements Annotator {
         // Can be null for default constructors
         if (psiMethod != null) {
             return toMethodId(psiMethod);
+        }
+        return null;
+    }
+
+    @Nullable
+    private String toMethodId(PsiMethodReferenceExpression psiMethodRef) {
+        var psiMethod = psiMethodRef.resolve();
+        // Can be null for default constructors
+        if (psiMethod instanceof PsiMethod) {
+            return toMethodId((PsiMethod) psiMethod);
         }
         return null;
     }
