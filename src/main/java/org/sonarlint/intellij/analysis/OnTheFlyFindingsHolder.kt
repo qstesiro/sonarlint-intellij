@@ -20,6 +20,9 @@
 package org.sonarlint.intellij.analysis
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.event.VisibleAreaListener
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
@@ -32,17 +35,30 @@ import org.sonarlint.intellij.editor.CodeAnalyzerRestarter
 import org.sonarlint.intellij.finding.LiveFindings
 import org.sonarlint.intellij.finding.hotspot.LiveSecurityHotspot
 import org.sonarlint.intellij.finding.issue.LiveIssue
+import java.awt.Rectangle
 import java.util.concurrent.ConcurrentHashMap
 
 class OnTheFlyFindingsHolder(private val project: Project) : FileEditorManagerListener {
     private var selectedFile: VirtualFile? = null
     private val currentIssuesPerOpenFile: MutableMap<VirtualFile, Collection<LiveIssue>> = ConcurrentHashMap()
     private val currentSecurityHotspotsPerOpenFile: MutableMap<VirtualFile, Collection<LiveSecurityHotspot>> = ConcurrentHashMap()
+    private val visibleAreasPerFile: MutableMap<VirtualFile, IntRange> = ConcurrentHashMap()
 
     init {
         ApplicationManager.getApplication().invokeAndWait { selectedFile = SonarLintUtils.getSelectedFile(project) }
         project.messageBus.connect()
             .subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, this)
+        EditorFactory.getInstance().eventMulticaster.addVisibleAreaListener(
+            VisibleAreaListener { e ->
+                val doc = e.editor.document
+                val docManager = FileDocumentManager.getInstance()
+                val file = docManager.getFile(doc)
+                if (file != null) {
+                    visibleAreasPerFile.put(file, IntRange(e.editor.yToVisualLine(e.newRectangle.y), e.editor.yToVisualLine(e.newRectangle.y + e.newRectangle.height)))
+                    updateCurrentFileTab()
+                }
+            }
+        )
     }
 
     fun updateOnAnalysisResult(analysisResult: AnalysisResult) =
@@ -89,8 +105,21 @@ class OnTheFlyFindingsHolder(private val project: Project) : FileEditorManagerLi
         if (!project.isDisposed) {
             getService(
                 project, SonarLintToolWindow::class.java
-            ).updateCurrentFileTab(selectedFile, selectedFile?.let { currentIssuesPerOpenFile[it] })
+            ).updateCurrentFileTab(selectedFile, selectedFile?.let { filterVisible(it) })
         }
+    }
+
+    private fun filterVisible(file: VirtualFile): Collection<LiveIssue>? {
+        val nonFiltered = currentIssuesPerOpenFile[file]
+        val viewport = visibleAreasPerFile[file]
+        if (nonFiltered != null && viewport != null) {
+            return filterVisible(nonFiltered, viewport)
+        }
+        return nonFiltered
+    }
+
+    private fun filterVisible(nonFiltered: Collection<LiveIssue>, viewport: IntRange): Collection<LiveIssue> {
+        return nonFiltered.filter { i -> viewport.contains(i.line ?: 1) }
     }
 
     fun clearCurrentFile() {
