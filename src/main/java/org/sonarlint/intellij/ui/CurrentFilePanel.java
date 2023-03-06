@@ -24,12 +24,16 @@ import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.editor.event.VisibleAreaEvent;
+import com.intellij.openapi.editor.event.VisibleAreaListener;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.util.ui.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.sonarlint.intellij.SonarLintIcons;
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
@@ -92,6 +96,10 @@ public class CurrentFilePanel extends AbstractIssuesPanel implements Disposable 
       liveIssues = Collections.emptyList();
     }
     update(file, List.copyOf(liveIssues), emptyText);
+  }
+
+  public void selectIssue(LiveIssue issue) {
+    setSelectedIssue(issue);
   }
 
   private void update(@Nullable VirtualFile file, Collection<LiveIssue> issues, String emptyText) {

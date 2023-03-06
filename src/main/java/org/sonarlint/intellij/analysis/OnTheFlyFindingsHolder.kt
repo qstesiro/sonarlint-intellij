@@ -21,6 +21,8 @@ package org.sonarlint.intellij.analysis
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.event.CaretEvent
+import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.editor.event.VisibleAreaListener
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -56,6 +58,22 @@ class OnTheFlyFindingsHolder(private val project: Project) : FileEditorManagerLi
                 if (file != null) {
                     visibleAreasPerFile.put(file, IntRange(e.editor.yToVisualLine(e.newRectangle.y), e.editor.yToVisualLine(e.newRectangle.y + e.newRectangle.height)))
                     updateCurrentFileTab()
+                }
+            }
+        )
+        EditorFactory.getInstance().eventMulticaster.addCaretListener(
+            object : CaretListener {
+                override fun caretPositionChanged(event: CaretEvent) {
+                    val doc = event.editor.document
+                    val docManager = FileDocumentManager.getInstance()
+                    val file = docManager.getFile(doc)
+                    if (file != null && file == selectedFile) {
+                        val carretOffset = event.editor.logicalPositionToOffset(event.newPosition)
+                        val issue = currentIssuesPerOpenFile[file]?.firstOrNull { i -> i.validTextRange?.contains(carretOffset) ?: false }
+                        if (issue!= null) {
+                            selectIssue(issue)
+                        }
+                    }
                 }
             }
         )
@@ -106,6 +124,14 @@ class OnTheFlyFindingsHolder(private val project: Project) : FileEditorManagerLi
             getService(
                 project, SonarLintToolWindow::class.java
             ).updateCurrentFileTab(selectedFile, selectedFile?.let { filterVisible(it) })
+        }
+    }
+
+    private fun selectIssue(issue: LiveIssue) {
+        if (!project.isDisposed) {
+            getService(
+                project, SonarLintToolWindow::class.java
+            ).selectIssue(issue)
         }
     }
 

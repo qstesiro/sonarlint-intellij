@@ -188,6 +188,10 @@ public class SonarLintToolWindow implements ContentManagerListenerAdapter {
     this.<CurrentFilePanel>updateTab(SonarLintToolWindowFactory.CURRENT_FILE_TAB_TITLE, panel -> panel.update(selectedFile, issues));
   }
 
+  public void selectIssue(LiveIssue issue) {
+    this.<CurrentFilePanel>updateTab(SonarLintToolWindowFactory.CURRENT_FILE_TAB_TITLE, panel -> panel.selectIssue(issue));
+  }
+
   private void showIssue(LiveIssue liveIssue, Consumer<CurrentFilePanel> selectTab) {
     openCurrentFileTab();
     selectTab(getToolWindow(), SonarLintToolWindowFactory.CURRENT_FILE_TAB_TITLE);

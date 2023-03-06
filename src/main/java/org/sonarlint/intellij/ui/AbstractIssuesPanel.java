@@ -40,6 +40,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.swing.Box;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
@@ -66,6 +67,7 @@ public abstract class AbstractIssuesPanel extends SimpleToolWindowPanel implemen
   protected FlowsTree flowsTree;
   protected FlowsTreeModelBuilder flowsTreeBuilder;
   private ActionToolbar mainToolbar;
+  private DefaultTreeModel model;
 
   protected AbstractIssuesPanel(Project project) {
     super(false, true);
@@ -146,7 +148,7 @@ public abstract class AbstractIssuesPanel extends SimpleToolWindowPanel implemen
 
   private void createIssuesTree() {
     treeBuilder = new IssueTreeModelBuilder();
-    var model = treeBuilder.createModel();
+    model = treeBuilder.createModel();
     tree = new IssueTree(project, model);
     tree.addTreeSelectionListener(e -> issueTreeSelectionChanged());
     tree.addKeyListener(new KeyAdapter() {

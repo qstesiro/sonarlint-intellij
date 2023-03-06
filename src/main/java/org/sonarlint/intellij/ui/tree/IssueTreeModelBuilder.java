@@ -22,6 +22,7 @@ package org.sonarlint.intellij.ui.tree;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
 import com.intellij.openapi.vfs.VirtualFile;
+import java.awt.Rectangle;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -168,6 +169,9 @@ public class IssueTreeModelBuilder implements FindingTreeModelBuilder {
 
   private static boolean accept(VirtualFile file) {
     return file.isValid();
+  }
+
+  public void filterVisibleIssues(Rectangle newRectangle) {
   }
 
   private static class FileNodeComparator implements Comparator<FileNode> {
