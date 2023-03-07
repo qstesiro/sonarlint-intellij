@@ -44,6 +44,7 @@ import org.sonarlint.intellij.ui.ContentManagerListenerAdapter;
 import org.sonarlint.intellij.ui.CurrentFilePanel;
 import org.sonarlint.intellij.ui.ReportPanel;
 import org.sonarlint.intellij.ui.SecurityHotspotsPanel;
+import org.sonarlint.intellij.ui.SinceLastCommitPanel;
 import org.sonarlint.intellij.ui.SonarLintToolWindowFactory;
 import org.sonarlint.intellij.ui.vulnerabilities.TaintVulnerabilitiesPanel;
 
@@ -186,6 +187,10 @@ public class SonarLintToolWindow implements ContentManagerListenerAdapter {
 
   public void updateCurrentFileTab(@Nullable VirtualFile selectedFile, @Nullable Collection<LiveIssue> issues) {
     this.<CurrentFilePanel>updateTab(SonarLintToolWindowFactory.CURRENT_FILE_TAB_TITLE, panel -> panel.update(selectedFile, issues));
+  }
+
+  public void updateSinceLastCommitTab(Map<VirtualFile, Collection<LiveIssue>> issues) {
+    this.<SinceLastCommitPanel>updateTab(SonarLintToolWindowFactory.SINCE_LAST_COMMIT_TAB_TITLE, panel -> panel.update(issues));
   }
 
   private void showIssue(LiveIssue liveIssue, Consumer<CurrentFilePanel> selectTab) {

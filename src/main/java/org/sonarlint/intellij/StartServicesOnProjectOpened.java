@@ -23,6 +23,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
 import org.jetbrains.annotations.NotNull;
+import org.sonarlint.intellij.analysis.cayc.CleanAsYouCodeManager;
 import org.sonarlint.intellij.common.util.SonarLintUtils;
 import org.sonarlint.intellij.core.BackendService;
 import org.sonarlint.intellij.core.ConnectedModeStorageSynchronizer;
@@ -51,6 +52,7 @@ public class StartServicesOnProjectOpened implements StartupActivity {
     doSubscribeForServerEvents(project);
 
     getService(BackendService.class).projectOpened(project);
+    getService(project, CleanAsYouCodeManager.class).initialize();
 
     // perform on bindings load
     getService(project, ConnectedModeStorageSynchronizer.class).init();

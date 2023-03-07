@@ -19,8 +19,10 @@
  */
 package org.sonarlint.intellij.common.vcs
 
+import com.intellij.openapi.vfs.VirtualFile
 import org.sonarsource.sonarlint.core.client.api.connected.ProjectBranches
 
 interface VcsRepo {
     fun electBestMatchingServerBranchForCurrentHead(projectBranches: ProjectBranches) : String?
+    fun getLocalChanges(files: Set<VirtualFile>): List<String>
 }

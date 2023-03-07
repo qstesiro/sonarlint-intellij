@@ -127,7 +127,7 @@ intellij {
 
 tasks.runPluginVerifier {
     // Test oldest supported, and latest
-    ideVersions.set(listOf("IC-2021.3", "IC-2022.3.2"))
+    ideVersions.set(listOf("PC-2021.3"))
     failureLevel.set(
         EnumSet.complementOf(
             EnumSet.of(

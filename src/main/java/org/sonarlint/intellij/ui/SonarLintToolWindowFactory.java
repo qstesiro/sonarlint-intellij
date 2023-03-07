@@ -48,6 +48,7 @@ public class SonarLintToolWindowFactory implements ToolWindowFactory {
   public static final String TOOL_WINDOW_ID = "SonarLint";
   public static final String LOG_TAB_TITLE = "Log";
   public static final String CURRENT_FILE_TAB_TITLE = "Current File";
+  public static final String SINCE_LAST_COMMIT_TAB_TITLE = "Since Last Commit";
   public static final String REPORT_TAB_TITLE = "Report";
   public static final String TAINT_VULNERABILITIES_TAB_TITLE = "Taint Vulnerabilities";
   public static final String SECURITY_HOTSPOTS_TAB_TITLE = "Security Hotspots";
@@ -55,6 +56,7 @@ public class SonarLintToolWindowFactory implements ToolWindowFactory {
   @Override
   public void createToolWindowContent(Project project, final ToolWindow toolWindow) {
     var contentManager = toolWindow.getContentManager();
+    addSinceLastCommitTab(project, contentManager);
     addCurrentFileTab(project, contentManager);
     addReportTab(project, contentManager);
     var sonarLintToolWindow = getService(project, SonarLintToolWindow.class);
@@ -99,6 +101,18 @@ public class SonarLintToolWindowFactory implements ToolWindowFactory {
       splitVertically = anchor == ToolWindowAnchor.LEFT || anchor == ToolWindowAnchor.RIGHT;
     }
     return splitVertically;
+  }
+
+  private static void addSinceLastCommitTab(Project project, @NotNull ContentManager contentManager) {
+    var reportPanel = new SinceLastCommitPanel(project);
+    var currentFileContent = contentManager.getFactory()
+      .createContent(
+        reportPanel,
+        SINCE_LAST_COMMIT_TAB_TITLE,
+        false);
+    currentFileContent.setCloseable(false);
+    contentManager.addDataProvider(reportPanel);
+    contentManager.addContent(currentFileContent);
   }
 
   private static void addCurrentFileTab(Project project, @NotNull ContentManager contentManager) {

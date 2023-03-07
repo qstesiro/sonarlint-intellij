@@ -27,19 +27,22 @@ import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.CheckForNull;
 import org.sonarlint.intellij.actions.ShowReportCallable;
 import org.sonarlint.intellij.actions.ShowSecurityHotspotCallable;
 import org.sonarlint.intellij.actions.ShowUpdatedCurrentFileCallable;
-import org.sonarlint.intellij.actions.UpdateOnTheFlyFindingsCallable;
+import org.sonarlint.intellij.actions.UpdateSinceLastCommitPanelCallable;
+import org.sonarlint.intellij.analysis.cayc.CleanAsYouCodeFindingsHolder;
 import org.sonarlint.intellij.common.ui.SonarLintConsole;
-import org.sonarlint.intellij.common.util.SonarLintUtils;
 import org.sonarlint.intellij.tasks.TaskRunnerKt;
 import org.sonarlint.intellij.trigger.TriggerType;
 import org.sonarlint.intellij.ui.SonarLintToolWindowFactory;
 
+import static org.sonarlint.intellij.common.util.SonarLintUtils.getService;
 import static org.sonarlint.intellij.config.Settings.getGlobalSettings;
 import static org.sonarlint.intellij.util.ProjectUtils.getAllFiles;
 
@@ -48,10 +51,12 @@ public class AnalysisSubmitter {
   public static final String ANALYSIS_TASK_TITLE = "SonarLint Analysis";
   private final Project project;
   private final OnTheFlyFindingsHolder onTheFlyFindingsHolder;
+  private final CleanAsYouCodeFindingsHolder cleanAsYouCodeFindingsHolder;
 
   public AnalysisSubmitter(Project project) {
     this.project = project;
     this.onTheFlyFindingsHolder = new OnTheFlyFindingsHolder(project);
+    this.cleanAsYouCodeFindingsHolder = new CleanAsYouCodeFindingsHolder(project);
   }
 
   public void analyzeAllFiles() {
@@ -70,7 +75,16 @@ public class AnalysisSubmitter {
 
   public void autoAnalyzeOpenFiles(TriggerType triggerType) {
     var openFiles = FileEditorManager.getInstance(project).getOpenFiles();
-    autoAnalyzeFiles(List.of(openFiles), triggerType);
+    // temporarily comment on-the-fly-behavior
+    //autoAnalyzeFiles(List.of(openFiles), triggerType);
+  }
+
+  public Cancelable autoAnalyzeChangedFiles(Set<VirtualFile> files, TriggerType triggerType) {
+    if (!getGlobalSettings().isAutoTrigger()) {
+      return null;
+    }
+    var callback = new UpdateSinceLastCommitPanelCallable(cleanAsYouCodeFindingsHolder);
+    return analyzeInBackground(files, triggerType, callback);
   }
 
   public void autoAnalyzeFile(VirtualFile file, TriggerType triggerType) {
@@ -82,13 +96,14 @@ public class AnalysisSubmitter {
     if (!getGlobalSettings().isAutoTrigger()) {
       return null;
     }
-    var callback = new UpdateOnTheFlyFindingsCallable(onTheFlyFindingsHolder);
-    return analyzeInBackground(files, triggerType, callback);
+    //var callback = new UpdateOnTheFlyFindingsCallable(onTheFlyFindingsHolder);
+    //return analyzeInBackground(files, triggerType, callback);
+    return autoAnalyzeChangedFiles(new HashSet<>(files), triggerType);
   }
 
   @CheckForNull
   public AnalysisResult analyzeFilesPreCommit(Collection<VirtualFile> files) {
-    var console = SonarLintUtils.getService(project, SonarLintConsole.class);
+    var console = getService(project, SonarLintConsole.class);
     var trigger = TriggerType.CHECK_IN;
     console.debug("Trigger: " + trigger);
     if (shouldSkipAnalysis()) {
@@ -151,8 +166,8 @@ public class AnalysisSubmitter {
   }
 
   private boolean shouldSkipAnalysis() {
-    var status = SonarLintUtils.getService(project, AnalysisStatus.class);
-    var console = SonarLintUtils.getService(project, SonarLintConsole.class);
+    var status = getService(project, AnalysisStatus.class);
+    var console = getService(project, SonarLintConsole.class);
     if (project.isDisposed() || !status.tryRun()) {
       console.info("Canceling analysis triggered by the user because another one is already running or because the project is disposed");
       return true;

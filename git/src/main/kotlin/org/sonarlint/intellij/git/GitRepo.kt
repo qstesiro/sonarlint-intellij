@@ -20,6 +20,7 @@
 package org.sonarlint.intellij.git
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import git4idea.commands.Git
 import git4idea.commands.GitCommand
 import git4idea.commands.GitLineHandler
@@ -60,6 +61,10 @@ class GitRepo(private val repo: GitRepository, private val project: Project, pri
             logger.error("Couldn't find best matching branch", e)
             null
         }
+    }
+
+    override fun getLocalChanges(files: Set<VirtualFile>): List<String> {
+        return emptyList()
     }
 
     private fun distance(project: Project, repository: GitRepository, from: String, to: String): Int? {
