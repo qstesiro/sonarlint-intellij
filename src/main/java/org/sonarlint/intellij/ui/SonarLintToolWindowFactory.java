@@ -51,6 +51,7 @@ public class SonarLintToolWindowFactory implements ToolWindowFactory {
   public static final String REPORT_TAB_TITLE = "Report";
   public static final String TAINT_VULNERABILITIES_TAB_TITLE = "Taint Vulnerabilities";
   public static final String SECURITY_HOTSPOTS_TAB_TITLE = "Security Hotspots";
+  public static final String NEW_UI_PANEL = "New UI";
 
   @Override
   public void createToolWindowContent(Project project, final ToolWindow toolWindow) {
@@ -63,6 +64,7 @@ public class SonarLintToolWindowFactory implements ToolWindowFactory {
       addTaintVulnerabilitiesTab(project, contentManager);
     }
     addLogTab(project, toolWindow);
+    addTestNewUiPanel(project, contentManager);
     toolWindow.setType(ToolWindowType.DOCKED, null);
     contentManager.addContentManagerListener(sonarLintToolWindow);
   }
@@ -147,6 +149,18 @@ public class SonarLintToolWindowFactory implements ToolWindowFactory {
     securityHotspotsContent.setCloseable(false);
     contentManager.addDataProvider(hotspotsPanel);
     contentManager.addContent(securityHotspotsContent);
+  }
+
+  private static void addTestNewUiPanel(Project project, @NotNull ContentManager contentManager) {
+    var newUiPanel = new TestNewUiPanel(project);
+    var newUiContent = contentManager.getFactory()
+      .createContent(
+        newUiPanel,
+        buildTabName(0, NEW_UI_PANEL),
+        false);
+    newUiContent.setCloseable(false);
+    contentManager.addDataProvider(newUiPanel);
+    contentManager.addContent(newUiContent);
   }
 
   private static void addLogTab(Project project, ToolWindow toolWindow) {
