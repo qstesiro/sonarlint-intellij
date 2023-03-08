@@ -21,6 +21,7 @@ package org.sonarlint.intellij.analysis.cayc
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.ChangeListManager
+import git4idea.changes.GitChangeUtils
 import java.util.function.Function
 
 // files changed since last commit are:
@@ -31,15 +32,20 @@ import java.util.function.Function
 // we ignore ranges for the moment
 
 // the default (or active) change list should be the starting point, to ignore changes in other change lists
+// warning: some lines of a file could be part of a changelist and some others in another changelist
 private fun getChangesSinceLastCommit(project: Project) : VcsDiff {
     return with(ChangeListManager.getInstance(project)) {
         VcsDiff((defaultChangeList.changes.mapNotNull { it.virtualFile }.toSet() + unversionedFilesPaths.mapNotNull { it.virtualFile })
             .map { VcsFileDiff(it, emptyList()) })
     }
 }
+private fun getChangesSinceLastPush(project: Project) : VcsDiff {
+    return GitChangeUtils.parseChangeList()
+}
 
 enum class Scope(private val affectedFilesSupplier: Function<Project, VcsDiff>) {
-    SINCE_LAST_COMMIT(::getChangesSinceLastCommit);
+    SINCE_LAST_COMMIT(::getChangesSinceLastCommit),
+    SINCE_LAST_PUSH(::getChangesSinceLastPush);
 
     fun getDiff(project: Project): VcsDiff {
         return affectedFilesSupplier.apply(project)
