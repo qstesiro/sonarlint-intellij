@@ -1,21 +1,22 @@
 package org.sonarlint.intellij.ui;
 
-import com.google.common.util.concurrent.AtomicDouble;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.Timer;
 
 public class TestNewUiPanelPanel extends JPanel {
 
-  private boolean isCollapsed;
+  private boolean isContentVisible;
   private final JPanel panLabel;
-  private static final int DELAY = 1;
+  private static final long DELAY = 10;
   private final double targetBase;
+  private ScheduledFuture<?> myTicker;
 
   public JPanel getPanLabel() {
     return panLabel;
@@ -23,7 +24,7 @@ public class TestNewUiPanelPanel extends JPanel {
 
   public TestNewUiPanelPanel() {
     super();
-    isCollapsed = true;
+    isContentVisible = false;
 
     setLayout(new BorderLayout());
     panLabel = new JPanel(new BorderLayout());
@@ -31,7 +32,7 @@ public class TestNewUiPanelPanel extends JPanel {
     var label = new JLabel("Test Notif");
     add(label, BorderLayout.NORTH);
     add(panLabel, BorderLayout.CENTER);
-    panLabel.setVisible(!isCollapsed);
+    panLabel.setVisible(isContentVisible);
 
     targetBase = getPreferredSize().getHeight() + label.getPreferredSize().getHeight();
 
@@ -40,76 +41,50 @@ public class TestNewUiPanelPanel extends JPanel {
     addMouseListener(new MouseAdapter() {
       @Override
       public void mouseClicked(MouseEvent e) {
-        isCollapsed = !isCollapsed;
-        if (!isCollapsed) {
-          panLabel.setVisible(true);
-        }
+        panLabel.setVisible(!isContentVisible);
 
-        var targetHeight = targetBase + (int) panLabel.getPreferredSize().getHeight() + 10;
-        var currentStep = new AtomicInteger();
-        var heightStep = !isCollapsed ? 1 : -1;
+        var targetHeight = isContentVisible ? targetBase : (targetBase + (int) panLabel.getPreferredSize().getHeight() + 10);
+        var heightStep = isContentVisible ? -1 : 1;
 
-        var timer = new Timer(DELAY, actionEvent -> {
-          var newHeight = getHeight() + heightStep;
-          setPreferredSize(new Dimension(getWidth(), newHeight));
-          currentStep.getAndIncrement();
-          if (currentStep.get() >= targetHeight) {
-            ((Timer) actionEvent.getSource()).stop();
-            if (isCollapsed) {
-              panLabel.setVisible(false);
-            }
-          }
-          revalidate();
-          repaint();
-        });
-        timer.start();
+        myTicker = Executors.newSingleThreadScheduledExecutor()
+          .scheduleWithFixedDelay(() -> onTick(heightStep, targetHeight, !isContentVisible, false, null), 0, DELAY, TimeUnit.MICROSECONDS);
       }
     });
+  }
+
+  private void onTick(int heightStep, double targetHeight, boolean finalState, boolean deletion, JPanel main) {
+    var newHeight = getHeight() + heightStep;
+    setPreferredSize(new Dimension(getWidth(), newHeight));
+    revalidate();
+    repaint();
+    if ((isContentVisible && getPreferredSize().getHeight() <= targetHeight) ||
+      (!isContentVisible && getPreferredSize().getHeight() >= targetHeight)) {
+      stopTicker(finalState, deletion, main);
+    }
+  }
+
+  private void stopTicker(boolean isContentVisible, boolean deletion, JPanel main) {
+    if (myTicker != null) {
+      myTicker.cancel(false);
+      myTicker = null;
+    }
+    this.isContentVisible = isContentVisible;
+    if (deletion) {
+      main.remove(this);
+      main.revalidate();
+      main.repaint();
+    }
   }
 
   private void resizeOnCreation() {
-    var currentStep = new AtomicInteger();
-    var heightStep = 1;
-    var currentHeight = new AtomicDouble();
-
-    var timer = new Timer(DELAY * 5, actionEvent -> {
-      var newHeight = currentHeight.get() + heightStep;
-      currentHeight.addAndGet(heightStep);
-      setPreferredSize(new Dimension(getWidth(), (int) Math.round(newHeight)));
-      currentStep.getAndIncrement();
-      if (currentStep.get() >= targetBase) {
-        ((Timer) actionEvent.getSource()).stop();
-      }
-      revalidate();
-      repaint();
-    });
-    timer.start();
+    myTicker = Executors.newSingleThreadScheduledExecutor()
+      .scheduleWithFixedDelay(() -> onTick(1, targetBase, isContentVisible, false, null), 0, DELAY * 5, TimeUnit.MICROSECONDS);
   }
 
   public void resizeOnDeletion(JPanel main) {
-    var currentStep = new AtomicInteger();
-    var heightStep = 1;
-    var baseHeight = getHeight();
-    var currentHeight = new AtomicDouble();
-    currentHeight.addAndGet(getHeight());
-
-    var realDelay = isCollapsed ? (DELAY * 5) : DELAY;
-
-    var timer = new Timer(realDelay, actionEvent -> {
-      var newHeight = currentHeight.get() - heightStep;
-      currentHeight.addAndGet(-heightStep);
-      setPreferredSize(new Dimension(getWidth(), (int) Math.round(newHeight)));
-      currentStep.getAndIncrement();
-      if (currentStep.get() >= baseHeight) {
-        ((Timer) actionEvent.getSource()).stop();
-        main.remove(this);
-        main.revalidate();
-        main.repaint();
-      }
-      revalidate();
-      repaint();
-    });
-    timer.start();
+    var realDelay = isContentVisible ? DELAY : (DELAY * 5);
+    myTicker = Executors.newSingleThreadScheduledExecutor()
+      .scheduleWithFixedDelay(() -> onTick(-1, 0, isContentVisible, true, main), 0, realDelay, TimeUnit.MICROSECONDS);
   }
 
 }
