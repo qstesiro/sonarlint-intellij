@@ -30,7 +30,7 @@ Questions and Feedback?
 
 For SonarLint support questions ("How do I?", "I got this error, why?", ...), please first read the [FAQ](https://community.sonarsource.com/t/frequently-asked-questions/7204) to learn how to get your logs, and then head to the [SonarSource forum](https://community.sonarsource.com/c/help/sl). Before creating a new topic, please check if your question has already been answered because there is a chance that someone has already had the same issue. 
 
-Be aware that this forum is a community, and the standard pleasantries are expected (_Hello, Thank you, I appreciate the reply, etc_). If you don't get an answer to your thread, you should sit on your hands for at least three days before bumping it. Operators are not standing b, but the Teams and Community Managers know that your questions are important. :-)
+Be aware that this forum is a community, and the standard pleasantries are expected (_Hello, Thank you, I appreciate the reply, etc_). If you don't get an answer to your thread, you should sit on your hands for at least three days before bumping it. Operators are not standing by, but the Teams and Community Managers know that your questions are important. :-)
 
 Contributing
 ------------
@@ -39,7 +39,7 @@ If you would like to see a new feature, check out the [PM for a Day](https://com
 
 Please be aware that we are not actively looking for feature contributions. The truth is that it's extremely difficult for someone outside SonarSource to comply with our roadmap and expectations. Therefore, we typically only accept minor cosmetic changes and typo fixes.
 
-With that in mind, if you would like to submit a code contribution, please create a pull request for this repository. Please explain your motives to contribute this change: what problem you are trying to fix, what improvement you are trying to make.
+With that in mind, if you would like to submit a code contribution, please create a pull request for this repository. Please explain your motives to contribute the change, describe what problem you are trying to fix, and tell us what improvement you are trying to make. The SonarLint Team will review the PR and discuss internally how it aligns with the [roadmap](https://www.sonarsource.com/products/sonarlint/roadmap/).
 
 Make sure that you follow our [code style](https://github.com/SonarSource/sonar-developer-toolset#code-style-configuration-for-intellij) and that all tests are passing.
 
