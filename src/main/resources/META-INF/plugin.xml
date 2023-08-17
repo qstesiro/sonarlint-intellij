@@ -52,7 +52,7 @@
             </p>
             <br/>
             <p>
-                Beginning in version 7.5, SonarLint can detect <a href="https://github.com/SonarSource/sonarlint-intellij/wiki/Security-Hotspots">Security Hotspots</a> when in Connected Mode with SonarQube 9.7+.
+                Beginning in version 7.5, SonarLint can detect <a href="https://docs.sonarsource.com/sonarlint/intellij/using-sonarlint/security-hotspots/">Security Hotspots</a> when in Connected Mode with SonarQube 9.7+.
             </p>
             <br/>
             <p>
