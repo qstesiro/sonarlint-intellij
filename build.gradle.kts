@@ -61,6 +61,7 @@ allprojects {
     }
 
     repositories {
+        mavenLocal()
         mavenCentral {
             content {
                 excludeGroupByRegex("com\\.sonarsource.*")

@@ -34,7 +34,7 @@ import org.sonarlint.intellij.java.JavaAnalysisConfigurator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class JavaAnalysisConfiguratorWithModularJdkTests extends AbstractSonarLintLightTests {
+class KotlinAnalysisConfiguratorWithModularJdkTests extends AbstractSonarLintLightTests {
 
   private static final Path FAKE_JDK_ROOT_PATH = Paths.get("src/test/resources/fake_jdk/").toAbsolutePath();
 
