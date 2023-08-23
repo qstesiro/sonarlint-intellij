@@ -188,7 +188,9 @@ configurations {
 }
 
 dependencies {
-    implementation("org.sonarsource.sonarlint.core:sonarlint-core:$sonarlintCoreVersion")
+    //implementation("org.sonarsource.sonarlint.core:sonarlint-core:$sonarlintCoreVersion")
+    implementation(files("/Users/tobias.hahnen/VCS/SonarSource/sonarlint-core/core/target/sonarlint-core-9.2-SNAPSHOT.jar"))
+
     implementation("commons-lang:commons-lang:2.6")
     implementation(project(":common"))
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
