@@ -28,17 +28,25 @@ import org.sonarsource.sonarlint.core.client.api.connected.ConnectedSonarLintEng
 import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneSonarLintEngine;
 
 public interface EngineManager {
-  void stopAllDeletedConnectedEnginesAsync();
 
-  void stopAllEngines(boolean async);
+    void stopAllDeletedConnectedEnginesAsync();
 
-  @NotNull ConnectedSonarLintEngine getConnectedEngine(String connectionId);
+    void stopAllEngines(boolean async);
 
-  StandaloneSonarLintEngine getStandaloneEngine();
+    @NotNull
+    ConnectedSonarLintEngine getConnectedEngine(String connectionId);
 
-  ConnectedSonarLintEngine getConnectedEngine(SonarLintProjectNotifications notifications, String serverId, String projectKey) throws InvalidBindingException;
+    StandaloneSonarLintEngine getStandaloneEngine();
 
-  @Nullable ConnectedSonarLintEngine getConnectedEngineIfStarted(String connectionId);
+    ConnectedSonarLintEngine getConnectedEngine(
+        SonarLintProjectNotifications notifications,
+        String serverId,
+        String projectKey
+    ) throws InvalidBindingException;
 
-  @Nullable SonarLintEngine getStandaloneEngineIfStarted();
+    @Nullable
+    ConnectedSonarLintEngine getConnectedEngineIfStarted(String connectionId);
+
+    @Nullable
+    SonarLintEngine getStandaloneEngineIfStarted();
 }

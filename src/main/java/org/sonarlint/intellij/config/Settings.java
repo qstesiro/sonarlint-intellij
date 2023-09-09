@@ -31,19 +31,20 @@ import org.sonarlint.intellij.config.project.SonarLintProjectSettingsStore;
 import static org.sonarlint.intellij.common.util.SonarLintUtils.getService;
 
 public class Settings {
-  public static SonarLintModuleSettings getSettingsFor(Module module) {
-    return getService(module, SonarLintModuleSettingsStore.class).getState();
-  }
 
-  public static SonarLintProjectSettings getSettingsFor(Project project) {
-    return getService(project, SonarLintProjectSettingsStore.class).getState();
-  }
+    public static SonarLintModuleSettings getSettingsFor(Module module) {
+        return getService(module, SonarLintModuleSettingsStore.class).getState();
+    }
 
-  public static SonarLintGlobalSettings getGlobalSettings() {
-    return getService(SonarLintGlobalSettingsStore.class).getState();
-  }
+    public static SonarLintProjectSettings getSettingsFor(Project project) {
+        return getService(project, SonarLintProjectSettingsStore.class).getState();
+    }
 
-  private Settings() {
-    // utility class
-  }
+    public static SonarLintGlobalSettings getGlobalSettings() {
+        return getService(SonarLintGlobalSettingsStore.class).getState();
+    }
+
+    private Settings() {
+        // utility class
+    }
 }

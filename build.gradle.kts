@@ -28,6 +28,7 @@ plugins {
 
 buildscript {
     repositories {
+        mavenLocal()
         mavenCentral()
     }
     dependencies {
@@ -61,6 +62,7 @@ allprojects {
     }
 
     repositories {
+        mavenLocal()
         mavenCentral {
             content {
                 excludeGroupByRegex("com\\.sonarsource.*")
@@ -174,7 +176,12 @@ tasks.runIde {
     maxHeapSize = "2g"
 }
 
+tasks.buildSearchableOptions {
+    enabled = false
+}
+
 configurations {
+    // resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
     val sqplugins = create("sqplugins") { isTransitive = false }
     create("sqplugins_deps") {
         extendsFrom(sqplugins)
@@ -183,7 +190,8 @@ configurations {
 }
 
 dependencies {
-    implementation("org.sonarsource.sonarlint.core:sonarlint-core:$sonarlintCoreVersion")
+    // implementation("org.sonarsource.sonarlint.core:sonarlint-core:$sonarlintCoreVersion")
+    implementation("org.sonarsource.sonarlint.core:sonarlint-core:8.13-SNAPSHOT") // ???
     implementation("commons-lang:commons-lang:2.6")
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
     implementation("org.apache.httpcomponents.client5:httpclient5:5.2.1") {
@@ -201,15 +209,18 @@ dependencies {
     testImplementation("org.eclipse.jetty:jetty-server:$jettyVersion")
     testImplementation("org.eclipse.jetty:jetty-servlet:$jettyVersion")
     testImplementation("org.eclipse.jetty:jetty-proxy:$jettyVersion")
-    "sqplugins"("org.sonarsource.java:sonar-java-plugin:7.16.0.30901")
-    "sqplugins"("org.sonarsource.javascript:sonar-javascript-plugin:9.13.0.20537")
-    "sqplugins"("org.sonarsource.php:sonar-php-plugin:3.27.0.9339")
-    "sqplugins"("org.sonarsource.python:sonar-python-plugin:3.21.0.10628")
-    "sqplugins"("org.sonarsource.kotlin:sonar-kotlin-plugin:2.12.0.1956")
-    "sqplugins"("org.sonarsource.slang:sonar-ruby-plugin:1.11.0.3905")
-    "sqplugins"("org.sonarsource.html:sonar-html-plugin:3.7.1.3306")
-    "sqplugins"("org.sonarsource.xml:sonar-xml-plugin:2.7.0.3820")
-    "sqplugins"("org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-plugin:1.6.0.59081")
+    // "sqplugins"("org.sonarsource.java:sonar-java-plugin:7.16.0.30901")
+    // "sqplugins"("org.sonarsource.javascript:sonar-javascript-plugin:9.13.0.20537")
+    // "sqplugins"("org.sonarsource.php:sonar-php-plugin:3.27.0.9339")
+    // "sqplugins"("org.sonarsource.python:sonar-python-plugin:3.21.0.10628")
+    // "sqplugins"("org.sonarsource.kotlin:sonar-kotlin-plugin:2.12.0.1956")
+    // "sqplugins"("org.sonarsource.slang:sonar-ruby-plugin:1.11.0.3905")
+    // "sqplugins"("org.sonarsource.html:sonar-html-plugin:3.7.1.3306")
+    // "sqplugins"("org.sonarsource.xml:sonar-xml-plugin:2.7.0.3820")
+    // "sqplugins"("org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-plugin:1.6.0.59081")
+    // "sqplugins"("org.sonarsource.pmd:sonar-pmd-plugin:3.3.0") // 不能生效 ???
+    // "sqplugins"(files("/home/qstesiro/.m2/repository/org/sonarsource/pmd/sonar-pmd-plugin/3.3.0/sonar-pmd-plugin-3.3.0.jar"))
+    // "sqplugins"("com.github.spotbugs:sonar-findbugs-plugin:4.0.3") // ???
     if (artifactoryUsername.isNotEmpty() && artifactoryPassword.isNotEmpty()) {
         "sqplugins"("com.sonarsource.cpp:sonar-cfamily-plugin:6.41.0.60884")
         "sqplugins"("com.sonarsource.secrets:sonar-secrets-plugin:1.2.0.53269")
@@ -370,4 +381,3 @@ signing {
     })
     sign(configurations.archives.get())
 }
-

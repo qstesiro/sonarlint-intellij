@@ -39,26 +39,43 @@ import org.sonarsource.sonarlint.core.commons.progress.ClientProgressMonitor;
 import static org.sonarlint.intellij.config.Settings.getSettingsFor;
 
 public abstract class SonarLintFacade {
-  protected final Project project;
 
-  protected SonarLintFacade(Project project) {
-    this.project = project;
-  }
+    protected final Project project;
 
-  protected abstract AnalysisResults analyze(Module module, Path baseDir, Path workDir, Collection<ClientInputFile> inputFiles, Map<String, String> props,
-    IssueListener issueListener, ClientProgressMonitor progressMonitor);
+    protected SonarLintFacade(Project project) {
+        this.project = project;
+    }
 
-  public synchronized AnalysisResults startAnalysis(Module module, List<ClientInputFile> inputFiles, IssueListener issueListener,
-                                                    Map<String, String> additionalProps, ClientProgressMonitor progressMonitor) {
-    var baseDir = Paths.get(project.getBasePath());
-    var workDir = baseDir.resolve(Project.DIRECTORY_STORE_FOLDER).resolve("sonarlint").toAbsolutePath();
-    var props = new HashMap<String, String>();
-    props.putAll(additionalProps);
-    props.putAll(getSettingsFor(project).getAdditionalProperties());
-    return analyze(module, baseDir, workDir, inputFiles, props, issueListener, progressMonitor);
-  }
+    protected abstract AnalysisResults analyze(
+        Module module,
+        Path baseDir,
+        Path workDir,
+        Collection<ClientInputFile> inputFiles,
+        Map<String, String> props,
+        IssueListener issueListener,
+        ClientProgressMonitor progressMonitor
+    );
 
-  public abstract Collection<VirtualFile> getExcluded(Module module, Collection<VirtualFile> files, Predicate<VirtualFile> testPredicate);
+    public synchronized AnalysisResults startAnalysis(
+        Module module,
+        List<ClientInputFile> inputFiles,
+        IssueListener issueListener,
+        Map<String, String> additionalProps,
+        ClientProgressMonitor progressMonitor
+    ) {
+        var baseDir = Paths.get(project.getBasePath());
+        var workDir = baseDir.resolve(Project.DIRECTORY_STORE_FOLDER).resolve("sonarlint").toAbsolutePath();
+        var props = new HashMap<String, String>();
+        props.putAll(additionalProps);
+        props.putAll(getSettingsFor(project).getAdditionalProperties());
+        return analyze(module, baseDir, workDir, inputFiles, props, issueListener, progressMonitor);
+    }
 
-  public abstract Collection<PluginDetails> getPluginDetails();
+    public abstract Collection<VirtualFile> getExcluded(
+        Module module,
+        Collection<VirtualFile> files,
+        Predicate<VirtualFile> testPredicate
+    );
+
+    public abstract Collection<PluginDetails> getPluginDetails();
 }

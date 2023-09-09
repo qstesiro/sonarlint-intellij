@@ -23,8 +23,10 @@ import com.intellij.openapi.extensions.ExtensionPointName;
 import java.util.Set;
 
 public interface LanguageActivator {
-  // Name is constructed from plugin-id.extension-point-name
-  ExtensionPointName<LanguageActivator> EP_NAME = ExtensionPointName.create("org.sonarlint.idea.languageActivator");
 
-  void amendLanguages(Set<org.sonarsource.sonarlint.core.commons.Language> enabledLanguages);
+    // Name is constructed from plugin-id.extension-point-name
+    ExtensionPointName<LanguageActivator>
+    EP_NAME = ExtensionPointName.create("org.sonarlint.idea.languageActivator");
+
+    void amendLanguages(Set<org.sonarsource.sonarlint.core.commons.Language> enabledLanguages);
 }

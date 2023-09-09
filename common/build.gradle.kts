@@ -9,6 +9,11 @@ intellij {
     version.set(intellijBuildVersion)
 }
 
+tasks.buildSearchableOptions {
+    enabled = false
+}
+
 dependencies {
-    implementation("org.sonarsource.sonarlint.core:sonarlint-core:$sonarlintCoreVersion")
+    // implementation("org.sonarsource.sonarlint.core:sonarlint-core:$sonarlintCoreVersion")
+    implementation("org.sonarsource.sonarlint.core:sonarlint-core:8.13-SNAPSHOT") // ???
 }

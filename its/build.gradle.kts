@@ -19,6 +19,7 @@ val compileTestKotlin: org.jetbrains.kotlin.gradle.tasks.KotlinCompile by tasks
 compileTestKotlin.kotlinOptions.jvmTarget = "11"
 
 repositories {
+    mavenLocal()
     maven("https://repox.jfrog.io/repox/sonarsource")
     maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
     mavenCentral()
@@ -32,6 +33,7 @@ dependencies {
     }
     testImplementation("org.sonarsource.slang:sonar-scala-plugin:1.8.3.2219")
     testImplementation("org.sonarsource.sonarqube:sonar-ws:8.5.1.38104")
+    testImplementation("org.sonarsource.pmd:sonar-pmd-plugin:3.3.0") // ???
     testImplementation("com.intellij.remoterobot:remote-robot:$remoteRobotVersion")
     testImplementation("com.intellij.remoterobot:remote-fixtures:$remoteRobotVersion")
     testImplementation(platform("org.junit:junit-bom:5.9.0"))
@@ -43,6 +45,10 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
     testLogging.showStandardStreams = true
+}
+
+tasks.buildSearchableOptions {
+    enabled = false
 }
 
 license {

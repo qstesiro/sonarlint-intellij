@@ -26,6 +26,7 @@ import com.intellij.openapi.project.ProjectCoreUtil;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileVisitor;
+import com.intellij.openapi.diagnostic.Logger;
 import icons.SonarLintIcons;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -41,90 +42,87 @@ import org.sonarlint.intellij.ui.SonarLintToolWindowFactory;
 import static org.sonarlint.intellij.common.util.SonarLintUtils.getService;
 
 public class SonarAnalyzeFilesAction extends DumbAwareAction {
-  public SonarAnalyzeFilesAction() {
-    super();
-  }
 
-  public SonarAnalyzeFilesAction(@Nullable String text, @Nullable String description, @Nullable Icon icon) {
-    super(text, description, icon);
-  }
+    static final Logger log = Logger.getInstance(SonarAnalyzeFilesAction.class);
 
-  @Override
-  public void update(AnActionEvent e) {
-    super.update(e);
-
-    var files = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY);
-    if (files == null || files.length == 0 || AbstractSonarAction.isRiderSlnOrCsproj(files)) {
-      e.getPresentation().setEnabled(false);
-      e.getPresentation().setVisible(false);
-      return;
+    public SonarAnalyzeFilesAction() {
+        super();
     }
 
-    if (SonarLintToolWindowFactory.TOOL_WINDOW_ID.equals(e.getPlace())) {
-      e.getPresentation().setIcon(SonarLintIcons.PLAY);
-    }
-    e.getPresentation().setVisible(true);
-
-    var project = e.getProject();
-    if (project == null || !project.isInitialized() || project.isDisposed()) {
-      e.getPresentation().setEnabled(false);
-      return;
-    }
-
-    var status = getService(project, AnalysisStatus.class);
-    if (status.isRunning()) {
-      e.getPresentation().setEnabled(false);
-      return;
-    }
-
-    e.getPresentation().setEnabled(true);
-  }
-
-  @Override
-  public void actionPerformed(AnActionEvent e) {
-    var project = e.getProject();
-    var files = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY);
-
-    if (project == null || project.isDisposed() || files == null || files.length == 0) {
-      return;
-    }
-
-    var hasProject = Stream.of(files)
-      .anyMatch(f -> f.getPath().equals(project.getBasePath()));
-
-    if (hasProject && !SonarAnalyzeAllFilesAction.showWarning()) {
-      return;
-    }
-
-    var fileSet = Stream.of(files)
-      .flatMap(f -> {
-        if (f.isDirectory()) {
-          var visitor = new CollectFilesVisitor();
-          VfsUtilCore.visitChildrenRecursively(f, visitor);
-          return visitor.files.stream();
-        } else {
-          return Stream.of(f);
-        }
-      })
-      .collect(Collectors.toSet());
-
-    getService(project, AnalysisSubmitter.class).analyzeFilesOnUserAction(fileSet, e);
-  }
-
-  private static class CollectFilesVisitor extends VirtualFileVisitor {
-    private final Set<VirtualFile> files = new LinkedHashSet<>();
-
-    public CollectFilesVisitor() {
-      super(VirtualFileVisitor.NO_FOLLOW_SYMLINKS);
+    public SonarAnalyzeFilesAction(@Nullable String text, @Nullable String description, @Nullable Icon icon) {
+        super(text, description, icon);
+        log.info("--- SonarAnalyzeFilesAction.SonarAnalyzeFilesAction");
     }
 
     @Override
-    public boolean visitFile(@NotNull VirtualFile file) {
-      var projectFile = ProjectCoreUtil.isProjectOrWorkspaceFile(file, file.getFileType());
-      if (!file.isDirectory() && !file.getFileType().isBinary() && !projectFile) {
-        files.add(file);
-      }
-      return !projectFile && !".git".equals(file.getName());
+    public void update(AnActionEvent e) {
+        super.update(e);
+        var files = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY);
+        if (files == null || files.length == 0 || AbstractSonarAction.isRiderSlnOrCsproj(files)) {
+            e.getPresentation().setEnabled(false);
+            e.getPresentation().setVisible(false);
+            return;
+        }
+        if (SonarLintToolWindowFactory.TOOL_WINDOW_ID.equals(e.getPlace())) {
+            e.getPresentation().setIcon(SonarLintIcons.PLAY);
+        }
+        e.getPresentation().setVisible(true);
+        var project = e.getProject();
+        if (project == null || !project.isInitialized() || project.isDisposed()) {
+            e.getPresentation().setEnabled(false);
+            return;
+        }
+        var status = getService(project, AnalysisStatus.class);
+        if (status.isRunning()) {
+            e.getPresentation().setEnabled(false);
+            return;
+        }
+        e.getPresentation().setEnabled(true);
     }
-  }
+
+    @Override
+    public void actionPerformed(AnActionEvent e) {
+        var project = e.getProject();
+        var files = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY);
+        if (project == null || project.isDisposed() || files == null || files.length == 0) {
+            return;
+        }
+        var hasProject = Stream.of(files)
+            .anyMatch(f -> f.getPath().equals(project.getBasePath()));
+        if (hasProject && !SonarAnalyzeAllFilesAction.showWarning()) {
+            return;
+        }
+        var fileSet = Stream.of(files)
+            .flatMap(
+                f -> {
+                    if (f.isDirectory()) {
+                        var visitor = new CollectFilesVisitor();
+                        VfsUtilCore.visitChildrenRecursively(f, visitor);
+                        return visitor.files.stream();
+                    } else {
+                        return Stream.of(f);
+                    }
+                }
+            )
+            .collect(Collectors.toSet());
+        getService(project, AnalysisSubmitter.class).analyzeFilesOnUserAction(fileSet, e);
+    }
+
+    private static class CollectFilesVisitor extends VirtualFileVisitor {
+
+        private final Set<VirtualFile> files = new LinkedHashSet<>();
+
+        public CollectFilesVisitor() {
+            super(VirtualFileVisitor.NO_FOLLOW_SYMLINKS);
+        }
+
+        @Override
+        public boolean visitFile(@NotNull VirtualFile file) {
+            var projectFile = ProjectCoreUtil.isProjectOrWorkspaceFile(file, file.getFileType());
+            if (!file.isDirectory() && !file.getFileType().isBinary() && !projectFile) {
+                files.add(file);
+            }
+            return !projectFile && !".git".equals(file.getName());
+        }
+    }
 }

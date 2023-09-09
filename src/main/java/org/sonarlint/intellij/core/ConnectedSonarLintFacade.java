@@ -44,52 +44,73 @@ import org.sonarsource.sonarlint.core.commons.progress.ClientProgressMonitor;
 import static org.sonarlint.intellij.common.util.SonarLintUtils.getService;
 
 class ConnectedSonarLintFacade extends SonarLintFacade {
-  private final ConnectedSonarLintEngine engine;
-  private final String projectKey;
 
-  ConnectedSonarLintFacade(ConnectedSonarLintEngine engine, Project project, String projectKey) {
-    super(project);
-    this.projectKey = projectKey;
-    Preconditions.checkNotNull(project, "project");
-    Preconditions.checkNotNull(project.getBasePath(), "project base path");
-    Preconditions.checkNotNull(engine, "engine");
-    this.engine = engine;
-  }
+    private final ConnectedSonarLintEngine engine;
+    private final String projectKey;
 
-  @Override
-  protected AnalysisResults analyze(Module module, Path baseDir, Path workDir, Collection<ClientInputFile> inputFiles, Map<String, String> props,
-    IssueListener issueListener, ClientProgressMonitor progressMonitor) {
-    var config = ConnectedAnalysisConfiguration.builder()
-      .setBaseDir(baseDir)
-      .addInputFiles(inputFiles)
-      .setProjectKey(projectKey)
-      .putAllExtraProperties(props)
-      .setModuleKey(module)
-      .build();
-    var console = getService(project, SonarLintConsole.class);
-    console.debug("Starting analysis with configuration:\n" + config);
-
-    final var analysisResults = engine.analyze(config, issueListener, new ProjectLogOutput(project), progressMonitor);
-    AnalysisRequirementNotifications.notifyOnceForSkippedPlugins(analysisResults, engine.getPluginDetails(), project);
-    return analysisResults;
-  }
-
-  @Override
-  public Collection<VirtualFile> getExcluded(Module module, Collection<VirtualFile> files, Predicate<VirtualFile> testPredicate) {
-    var bindingManager = getService(module, ModuleBindingManager.class);
-    var binding = bindingManager.getBinding();
-    if (binding == null) {
-      // should never happen since the project should be bound!
-      return Collections.emptyList();
+    ConnectedSonarLintFacade(
+        ConnectedSonarLintEngine engine,
+        Project project,
+        String projectKey
+    ) {
+        super(project);
+        this.projectKey = projectKey;
+        Preconditions.checkNotNull(project, "project");
+        Preconditions.checkNotNull(project.getBasePath(), "project base path");
+        Preconditions.checkNotNull(engine, "engine");
+        this.engine = engine;
     }
 
-    Function<VirtualFile, String> ideFilePathExtractor = s -> SonarLintAppUtils.getRelativePathForAnalysis(module, s);
-    return engine.getExcludedFiles(binding, files, ideFilePathExtractor, testPredicate);
-  }
+    @Override
+    protected AnalysisResults analyze(
+        Module module,
+        Path baseDir,
+        Path workDir,
+        Collection<ClientInputFile> inputFiles,
+        Map<String, String> props,
+        IssueListener issueListener,
+        ClientProgressMonitor progressMonitor
+    ) {
+        var config = ConnectedAnalysisConfiguration.builder()
+            .setBaseDir(baseDir)
+            .addInputFiles(inputFiles)
+            .setProjectKey(projectKey)
+            .putAllExtraProperties(props)
+            .setModuleKey(module)
+            .build();
+        var console = getService(project, SonarLintConsole.class);
+        console.debug("Starting analysis with configuration:\n" + config);
+        final var analysisResults = engine.analyze(
+            config,
+            issueListener,
+            new ProjectLogOutput(project),
+            progressMonitor
+        );
+        AnalysisRequirementNotifications.notifyOnceForSkippedPlugins(
+            analysisResults, engine.getPluginDetails(), project
+        );
+        return analysisResults;
+    }
 
-  @Override
-  public Collection<PluginDetails> getPluginDetails() {
-    return engine.getPluginDetails();
-  }
+    @Override
+    public Collection<VirtualFile> getExcluded(
+        Module module,
+        Collection<VirtualFile> files,
+        Predicate<VirtualFile> testPredicate
+    ) {
+        var bindingManager = getService(module, ModuleBindingManager.class);
+        var binding = bindingManager.getBinding();
+        if (binding == null) {
+            // should never happen since the project should be bound!
+            return Collections.emptyList();
+        }
+        Function<VirtualFile, String> ideFilePathExtractor =
+            s -> SonarLintAppUtils.getRelativePathForAnalysis(module, s);
+        return engine.getExcludedFiles(binding, files, ideFilePathExtractor, testPredicate);
+    }
 
+    @Override
+    public Collection<PluginDetails> getPluginDetails() {
+        return engine.getPluginDetails();
+    }
 }

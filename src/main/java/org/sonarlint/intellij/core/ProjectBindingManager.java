@@ -53,238 +53,267 @@ import static org.sonarlint.intellij.common.util.SonarLintUtils.isBlank;
 import static org.sonarlint.intellij.config.Settings.getGlobalSettings;
 import static org.sonarlint.intellij.config.Settings.getSettingsFor;
 
+import com.intellij.openapi.diagnostic.Logger;
+
 public class ProjectBindingManager {
-  private final Project myProject;
-  private final ProgressManager progressManager;
 
-  public ProjectBindingManager(Project project) {
-    this(project, ProgressManager.getInstance());
-  }
+    static final Logger log = Logger.getInstance(ProjectBindingManager.class);
 
-  @NonInjectable
-  ProjectBindingManager(Project project, ProgressManager progressManager) {
-    this.myProject = project;
-    this.progressManager = progressManager;
-  }
+    private final Project myProject;
+    private final ProgressManager progressManager;
 
-  /**
-   * Returns a Facade with the appropriate engine (standalone or connected) based on the current project and module configurations.
-   * In case of a problem, it handles the displaying of errors (Logging, user notifications, ..) and throws an InvalidBindingException.
-   *
-   * @throws InvalidBindingException If current project binding is invalid
-   */
-  public SonarLintFacade getFacade(Module module) throws InvalidBindingException {
-    return getFacade(module, false);
-  }
-
-  public SonarLintFacade getFacade(Module module, boolean logDetails) throws InvalidBindingException {
-    var engineManager = getService(EngineManager.class);
-    var projectSettings = getSettingsFor(myProject);
-    var notifications = getService(myProject, SonarLintProjectNotifications.class);
-    var console = getService(myProject, SonarLintConsole.class);
-    if (projectSettings.isBindingEnabled()) {
-      var moduleBindingManager = getService(module, ModuleBindingManager.class);
-      var connectionId = projectSettings.getConnectionName();
-      var projectKey = moduleBindingManager.resolveProjectKey();
-      checkBindingStatus(notifications, connectionId, projectKey);
-      if (logDetails) {
-        console.info(String.format("Using connection '%s' for project '%s'", connectionId, projectKey));
-      }
-      var engine = engineManager.getConnectedEngine(notifications, connectionId, projectKey);
-      return new ConnectedSonarLintFacade(engine, myProject, projectKey);
+    public ProjectBindingManager(Project project) {
+        this(project, ProgressManager.getInstance());
     }
 
-    return new StandaloneSonarLintFacade(myProject, engineManager.getStandaloneEngine());
-  }
-
-  private ConnectedSonarLintEngine getConnectedEngineSkipChecks() {
-    var engineManager = getService(EngineManager.class);
-    return engineManager.getConnectedEngine(requireNonNull(getSettingsFor(myProject).getConnectionName()));
-  }
-
-  public ConnectedSonarLintEngine getConnectedEngine() throws InvalidBindingException {
-    var projectSettings = getSettingsFor(myProject);
-    if (!projectSettings.isBindingEnabled()) {
-      throw new IllegalStateException("Project is not bound to a SonarQube project");
+    @NonInjectable
+    ProjectBindingManager(Project project, ProgressManager progressManager) {
+        this.myProject = project;
+        this.progressManager = progressManager;
     }
-    var notifications = getService(myProject, SonarLintProjectNotifications.class);
-    var connectionName = projectSettings.getConnectionName();
-    var projectKey = projectSettings.getProjectKey();
-    checkBindingStatus(notifications, connectionName, projectKey);
 
-    var engineManager = getService(EngineManager.class);
-    return engineManager.getConnectedEngine(notifications, connectionName, projectKey);
-  }
-
-  @CheckForNull
-  public SonarLintEngine getEngineIfStarted() {
-    var engineManager = getService(EngineManager.class);
-    var projectSettings = getSettingsFor(myProject);
-    if (projectSettings.isBound()) {
-      var connectionId = projectSettings.getConnectionName();
-      return engineManager.getConnectedEngineIfStarted(requireNonNull(connectionId));
+    /**
+     * Returns a Facade with the appropriate engine (standalone or connected) based
+     * on the current project and module configurations.
+     * In case of a problem, it handles the displaying of errors (Logging, user notifications, ..) and
+     * throws an InvalidBindingException.
+     *
+     * @throws InvalidBindingException If current project binding is invalid
+     */
+    public SonarLintFacade getFacade(Module module) throws InvalidBindingException {
+        return getFacade(module, false);
     }
-    return engineManager.getStandaloneEngineIfStarted();
-  }
 
-  public boolean isBindingValid() {
-    return getSettingsFor(myProject).isBound() && tryGetServerConnection().isPresent();
-  }
-
-  public @CheckForNull ConnectedSonarLintEngine getValidConnectedEngine() {
-    return isBindingValid() ? getConnectedEngineSkipChecks() : null;
-  }
-
-  public ServerConnection getServerConnection() throws InvalidBindingException {
-    return tryGetServerConnection().orElseThrow(
-      () -> new InvalidBindingException("Unable to find a connection with name: " + getSettingsFor(myProject).getConnectionName()));
-  }
-
-  public Optional<ServerConnection> tryGetServerConnection() {
-    if (!getSettingsFor(myProject).isBindingEnabled()) {
-      return Optional.empty();
-    }
-    var connectionName = getSettingsFor(myProject).getConnectionName();
-    var connections = getGlobalSettings().getServerConnections();
-
-    return connections.stream().filter(s -> s.getName().equals(connectionName)).findAny();
-  }
-
-  private static void checkBindingStatus(SonarLintProjectNotifications notifications, @Nullable String connectionName, @Nullable String projectKey) throws InvalidBindingException {
-    if (connectionName == null) {
-      notifications.notifyConnectionIdInvalid();
-      throw new InvalidBindingException("Project has an invalid binding");
-    } else if (projectKey == null) {
-      notifications.notifyProjectStorageInvalid();
-      throw new InvalidBindingException("Project has an invalid binding");
-    }
-  }
-
-  @CheckForNull
-  public ProjectBinding getBinding() {
-    if (isBindingValid()) {
-      var settings = getSettingsFor(myProject);
-      return new ProjectBinding(settings.getConnectionName(), settings.getProjectKey(), getModuleOverrides());
-    }
-    return null;
-  }
-
-  public void bindTo(@NotNull ServerConnection connection, @NotNull String projectKey, Map<Module, String> moduleBindingsOverrides) {
-    var previousBinding = getBinding();
-
-    var projectSettings = getSettingsFor(myProject);
-    projectSettings.bindTo(connection, projectKey);
-    moduleBindingsOverrides.forEach((module, overriddenProjectKey) -> getSettingsFor(module).setProjectKey(overriddenProjectKey));
-    var modulesToClearOverride = allModules().stream()
-      .filter(m -> !moduleBindingsOverrides.containsKey(m));
-    unbind(modulesToClearOverride.collect(Collectors.toList()));
-
-    SonarLintProjectNotifications.get(myProject).reset();
-    var newBinding = requireNonNull(getBinding());
-    if (!Objects.equals(previousBinding, newBinding)) {
-      myProject.getMessageBus().syncPublisher(ProjectBindingListenerKt.getPROJECT_BINDING_TOPIC()).bindingChanged(previousBinding, newBinding);
-    }
-    var task = new BindingStorageUpdateTask(connection, myProject);
-    progressManager.run(task.asModal());
-    if (!Objects.equals(previousBinding, newBinding)) {
-      getService(BackendService.class).projectBound(myProject, newBinding);
-    }
-  }
-
-  public void unbind() {
-    var previousBinding = getBinding();
-
-    var projectSettings = getSettingsFor(myProject);
-    projectSettings.unbind();
-    unbind(allModules());
-
-    SonarLintProjectNotifications.get(myProject).reset();
-    if (previousBinding != null) {
-      myProject.getMessageBus().syncPublisher(ProjectBindingListenerKt.getPROJECT_BINDING_TOPIC()).bindingChanged(previousBinding, null);
-      getService(BackendService.class).projectUnbound(myProject);
-    }
-  }
-
-  private static void unbind(List<Module> modules) {
-    modules.forEach(m -> getService(m, ModuleBindingManager.class).unbind());
-  }
-
-  private List<Module> allModules() {
-    return List.of(ModuleManager.getInstance(myProject).getModules());
-  }
-
-  public Map<Module, String> getModuleOverrides() {
-    return allModules().stream()
-      .filter(m -> getSettingsFor(m).isProjectBindingOverridden())
-      .collect(Collectors.toMap(m -> m, m -> org.sonarlint.intellij.config.Settings.getSettingsFor(m).getProjectKey()));
-  }
-
-  public Set<String> getUniqueProjectKeys() {
-    var projectSettings = getSettingsFor(myProject);
-    if (projectSettings.isBound()) {
-      return getUniqueProjectKeysForModules(allModules());
-    }
-    return Collections.emptySet();
-  }
-
-  public Set<ProjectKeyAndBranch> getUniqueProjectKeysAndBranchesPairs() {
-    var projectSettings = getSettingsFor(myProject);
-    if (projectSettings.isBound()) {
-      VcsService vcsService = getService(myProject, VcsService.class);
-      return allModules().stream().map(module -> {
-        ModuleBindingManager moduleBindingManager = getService(module, ModuleBindingManager.class);
-        var projectKey = moduleBindingManager.resolveProjectKey();
-        if (projectKey != null) {
-          var branchName = vcsService.getServerBranchName(module);
-          return new ProjectKeyAndBranch(projectKey, branchName);
+    public SonarLintFacade getFacade(Module module, boolean logDetails) throws InvalidBindingException {
+        var engineManager = getService(EngineManager.class);
+        var projectSettings = getSettingsFor(myProject);
+        var notifications = getService(myProject, SonarLintProjectNotifications.class);
+        var console = getService(myProject, SonarLintConsole.class);
+        if (projectSettings.isBindingEnabled()) {
+            var moduleBindingManager = getService(module, ModuleBindingManager.class);
+            var connectionId = projectSettings.getConnectionName();
+            var projectKey = moduleBindingManager.resolveProjectKey();
+            checkBindingStatus(notifications, connectionId, projectKey);
+            if (logDetails) {
+                console.info(String.format("Using connection '%s' for project '%s'", connectionId, projectKey));
+            }
+            var engine = engineManager.getConnectedEngine(notifications, connectionId, projectKey);
+            return new ConnectedSonarLintFacade(engine, myProject, projectKey);
         }
-        return null;
-      })
-        .filter(Objects::nonNull)
-        .collect(Collectors.toSet());
-    }
-    return Set.of();
-  }
-
-  public static class ProjectKeyAndBranch {
-    private final String projectKey;
-    private final String branchName;
-
-    public ProjectKeyAndBranch(String projectKey, @Nullable String branchName) {
-      this.projectKey = projectKey;
-      this.branchName = branchName;
+        log.info("--- getFacode");
+        return new StandaloneSonarLintFacade(myProject, engineManager.getStandaloneEngine());
     }
 
-    public String getProjectKey() {
-      return projectKey;
+    private ConnectedSonarLintEngine getConnectedEngineSkipChecks() {
+        var engineManager = getService(EngineManager.class);
+        return engineManager.getConnectedEngine(requireNonNull(getSettingsFor(myProject).getConnectionName()));
+    }
+
+    public ConnectedSonarLintEngine getConnectedEngine() throws InvalidBindingException {
+        var projectSettings = getSettingsFor(myProject);
+        if (!projectSettings.isBindingEnabled()) {
+            throw new IllegalStateException("Project is not bound to a SonarQube project");
+        }
+        var notifications = getService(myProject, SonarLintProjectNotifications.class);
+        var connectionName = projectSettings.getConnectionName();
+        var projectKey = projectSettings.getProjectKey();
+        checkBindingStatus(notifications, connectionName, projectKey);
+        var engineManager = getService(EngineManager.class);
+        return engineManager.getConnectedEngine(notifications, connectionName, projectKey);
     }
 
     @CheckForNull
-    public String getBranchName() {
-      return branchName;
+    public SonarLintEngine getEngineIfStarted() {
+        var engineManager = getService(EngineManager.class);
+        var projectSettings = getSettingsFor(myProject);
+        if (projectSettings.isBound()) {
+            var connectionId = projectSettings.getConnectionName();
+            return engineManager.getConnectedEngineIfStarted(requireNonNull(connectionId));
+        }
+        return engineManager.getStandaloneEngineIfStarted();
     }
 
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      ProjectKeyAndBranch that = (ProjectKeyAndBranch) o;
-      return projectKey.equals(that.projectKey) && branchName.equals(that.branchName);
+    public boolean isBindingValid() {
+        return getSettingsFor(myProject).isBound() && tryGetServerConnection().isPresent();
     }
 
-    @Override
-    public int hashCode() {
-      return Objects.hash(projectKey, branchName);
+    public @CheckForNull ConnectedSonarLintEngine getValidConnectedEngine() {
+        return isBindingValid() ? getConnectedEngineSkipChecks() : null;
     }
-  }
 
-  private static Set<String> getUniqueProjectKeysForModules(Collection<Module> modules) {
-    return modules.stream().map(module -> getService(module, ModuleBindingManager.class).resolveProjectKey())
-      .filter(projectKey -> !isBlank(projectKey))
-      .collect(Collectors.toSet());
-  }
+    public ServerConnection getServerConnection() throws InvalidBindingException {
+        return tryGetServerConnection().orElseThrow(
+            () -> new InvalidBindingException(
+                "Unable to find a connection with name: " +
+                getSettingsFor(myProject).getConnectionName()
+            )
+        );
+    }
+
+    public Optional<ServerConnection> tryGetServerConnection() {
+        if (!getSettingsFor(myProject).isBindingEnabled()) {
+            return Optional.empty();
+        }
+        var connectionName = getSettingsFor(myProject).getConnectionName();
+        var connections = getGlobalSettings().getServerConnections();
+        return connections.stream().filter(s -> s.getName().equals(connectionName)).findAny();
+    }
+
+    private static void checkBindingStatus(
+        SonarLintProjectNotifications notifications,
+        @Nullable String connectionName,
+        @Nullable String projectKey
+    ) throws InvalidBindingException {
+        if (connectionName == null) {
+            notifications.notifyConnectionIdInvalid();
+            throw new InvalidBindingException("Project has an invalid binding");
+        } else if (projectKey == null) {
+            notifications.notifyProjectStorageInvalid();
+            throw new InvalidBindingException("Project has an invalid binding");
+        }
+    }
+
+    @CheckForNull
+    public ProjectBinding getBinding() {
+        if (isBindingValid()) {
+            var settings = getSettingsFor(myProject);
+            return new ProjectBinding(
+                settings.getConnectionName(),
+                settings.getProjectKey(),
+                getModuleOverrides()
+            );
+        }
+        return null;
+    }
+
+    public void bindTo(
+        @NotNull ServerConnection connection,
+        @NotNull String projectKey,
+        Map<Module, String> moduleBindingsOverrides
+    ) {
+        var previousBinding = getBinding();
+        var projectSettings = getSettingsFor(myProject);
+        projectSettings.bindTo(connection, projectKey);
+        moduleBindingsOverrides.forEach(
+            (module, overriddenProjectKey) -> getSettingsFor(module).setProjectKey(overriddenProjectKey)
+        );
+        var modulesToClearOverride = allModules().stream()
+            .filter(m -> !moduleBindingsOverrides.containsKey(m));
+        unbind(modulesToClearOverride.collect(Collectors.toList()));
+        SonarLintProjectNotifications.get(myProject).reset();
+        var newBinding = requireNonNull(getBinding());
+        if (!Objects.equals(previousBinding, newBinding)) {
+            myProject.getMessageBus().syncPublisher(
+                ProjectBindingListenerKt.getPROJECT_BINDING_TOPIC()
+            ).bindingChanged(previousBinding, newBinding);
+        }
+        var task = new BindingStorageUpdateTask(connection, myProject);
+        progressManager.run(task.asModal());
+        if (!Objects.equals(previousBinding, newBinding)) {
+            getService(BackendService.class).projectBound(myProject, newBinding);
+        }
+    }
+
+    public void unbind() {
+        var previousBinding = getBinding();
+        var projectSettings = getSettingsFor(myProject);
+        projectSettings.unbind();
+        unbind(allModules());
+        SonarLintProjectNotifications.get(myProject).reset();
+        if (previousBinding != null) {
+            myProject.getMessageBus().syncPublisher(
+                ProjectBindingListenerKt.getPROJECT_BINDING_TOPIC()
+            ).bindingChanged(previousBinding, null);
+            getService(BackendService.class).projectUnbound(myProject);
+        }
+    }
+
+    private static void unbind(List<Module> modules) {
+        modules.forEach(m -> getService(m, ModuleBindingManager.class).unbind());
+    }
+
+    private List<Module> allModules() {
+        return List.of(ModuleManager.getInstance(myProject).getModules());
+    }
+
+    public Map<Module, String> getModuleOverrides() {
+        return allModules().stream()
+            .filter(m -> getSettingsFor(m).isProjectBindingOverridden())
+            .collect(
+                Collectors.toMap(
+                    m -> m,
+                    m -> org.sonarlint.intellij.config.Settings.getSettingsFor(m).getProjectKey()
+                )
+            );
+    }
+
+    public Set<String> getUniqueProjectKeys() {
+        var projectSettings = getSettingsFor(myProject);
+        if (projectSettings.isBound()) {
+            return getUniqueProjectKeysForModules(allModules());
+        }
+        return Collections.emptySet();
+    }
+
+    public Set<ProjectKeyAndBranch> getUniqueProjectKeysAndBranchesPairs() {
+        var projectSettings = getSettingsFor(myProject);
+        if (projectSettings.isBound()) {
+            VcsService vcsService = getService(myProject, VcsService.class);
+            return allModules().stream().map(
+                module -> {
+                    ModuleBindingManager moduleBindingManager = getService(module, ModuleBindingManager.class);
+                    var projectKey = moduleBindingManager.resolveProjectKey();
+                    if (projectKey != null) {
+                        var branchName = vcsService.getServerBranchName(module);
+                        return new ProjectKeyAndBranch(projectKey, branchName);
+                    }
+                    return null;
+                }
+            ).filter(Objects::nonNull).collect(Collectors.toSet());
+        }
+        return Set.of();
+    }
+
+    public static class ProjectKeyAndBranch {
+
+        private final String projectKey;
+        private final String branchName;
+
+        public ProjectKeyAndBranch(String projectKey, @Nullable String branchName) {
+            this.projectKey = projectKey;
+            this.branchName = branchName;
+        }
+
+        public String getProjectKey() {
+            return projectKey;
+        }
+
+        @CheckForNull
+        public String getBranchName() {
+            return branchName;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            ProjectKeyAndBranch that = (ProjectKeyAndBranch) o;
+            return projectKey.equals(that.projectKey) && branchName.equals(that.branchName);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(projectKey, branchName);
+        }
+    }
+
+    private static Set<String> getUniqueProjectKeysForModules(Collection<Module> modules) {
+        return modules.stream().map(
+            module -> getService(module, ModuleBindingManager.class).resolveProjectKey()
+        ).filter(projectKey -> !isBlank(projectKey)).collect(Collectors.toSet());
+    }
 }

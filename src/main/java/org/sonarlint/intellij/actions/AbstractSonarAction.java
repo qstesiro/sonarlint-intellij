@@ -29,48 +29,53 @@ import org.jetbrains.annotations.Nullable;
 import org.sonarlint.intellij.analysis.AnalysisStatus;
 
 public abstract class AbstractSonarAction extends AnAction {
-  protected AbstractSonarAction() {
-    super();
-  }
 
-  protected AbstractSonarAction(@Nullable String text, @Nullable String description, @Nullable Icon icon) {
-    super(text, description, icon);
-  }
-
-  @Override
-  public void update(AnActionEvent e) {
-    var p = e.getProject();
-
-    if (isVisible(e.getPlace())) {
-      e.getPresentation().setVisible(true);
-    } else {
-      e.getPresentation().setVisible(false);
-      e.getPresentation().setEnabled(false);
-      return;
+    protected AbstractSonarAction() {
+        super();
     }
 
-    if (p == null || !p.isInitialized() || p.isDisposed()) {
-      e.getPresentation().setEnabled(false);
-    } else {
-      var status = AnalysisStatus.get(p);
-      e.getPresentation().setEnabled(isEnabled(e, p, status));
+    protected AbstractSonarAction(
+        @Nullable String text,
+        @Nullable String description,
+        @Nullable Icon icon
+    ) {
+        super(text, description, icon);
     }
-  }
 
-  static boolean isRiderSlnOrCsproj(VirtualFile[] files) {
-    return Stream.of(files)
-      .allMatch(f -> f.getName().endsWith(".sln") || f.getName().endsWith(".csproj"));
-  }
+    @Override
+    public void update(AnActionEvent e) {
+        var p = e.getProject();
+        if (isVisible(e.getPlace())) {
+            e.getPresentation().setVisible(true);
+        } else {
+            e.getPresentation().setVisible(false);
+            e.getPresentation().setEnabled(false);
+            return;
+        }
+        if (p == null || !p.isInitialized() || p.isDisposed()) {
+            e.getPresentation().setEnabled(false);
+        } else {
+            var status = AnalysisStatus.get(p);
+            e.getPresentation().setEnabled(isEnabled(e, p, status));
+        }
+    }
 
-  /**
-   * Whether the action should be visible in a place.
-   * Examples: MainMenu, ProjectViewPopup, GoToAction
-   *
-   * @see com.intellij.openapi.actionSystem.ActionPlaces
-   */
-  protected boolean isVisible(String place) {
-    return true;
-  }
+    static boolean isRiderSlnOrCsproj(VirtualFile[] files) {
+        return Stream.of(files)
+            .allMatch(
+                f -> f.getName().endsWith(".sln") || f.getName().endsWith(".csproj")
+            );
+    }
 
-  protected abstract boolean isEnabled(AnActionEvent e, Project project, AnalysisStatus status);
+    /**
+     * Whether the action should be visible in a place.
+     * Examples: MainMenu, ProjectViewPopup, GoToAction
+     *
+     * @see com.intellij.openapi.actionSystem.ActionPlaces
+     */
+    protected boolean isVisible(String place) {
+        return true;
+    }
+
+    protected abstract boolean isEnabled(AnActionEvent e, Project project, AnalysisStatus status);
 }

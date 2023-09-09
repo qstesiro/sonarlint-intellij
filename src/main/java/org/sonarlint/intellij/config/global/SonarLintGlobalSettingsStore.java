@@ -26,32 +26,37 @@ import java.util.HashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@State(name = "SonarLintGlobalSettings",
-  storages = {@Storage("sonarlint.xml")},
-  // used for settings export
-  presentableName = SonarLintGlobalSettingsPresentableName.class
+@State(
+    name = "SonarLintGlobalSettings",
+    storages = {@Storage("sonarlint.xml")},
+    // used for settings export
+    presentableName = SonarLintGlobalSettingsPresentableName.class
 )
 public final class SonarLintGlobalSettingsStore implements PersistentStateComponent<SonarLintGlobalSettings> {
 
-  private SonarLintGlobalSettings settings = new SonarLintGlobalSettings();
+    private SonarLintGlobalSettings settings = new SonarLintGlobalSettings();
 
-  @Override
-  public SonarLintGlobalSettings getState() {
-    this.settings.rules = this.settings.rulesByKey.values();
-    return settings;
-  }
+    @Override
+    public SonarLintGlobalSettings getState() {
+        this.settings.rules = this.settings.rulesByKey.values();
+        return settings;
+    }
 
-  @Override
-  public void loadState(SonarLintGlobalSettings settings) {
-    this.settings = settings;
-    initializeRulesByKey();
-  }
+    @Override
+    public void loadState(SonarLintGlobalSettings settings) {
+        this.settings = settings;
+        initializeRulesByKey();
+    }
 
-  public void save(SonarLintGlobalSettings settings) {
-    this.settings = settings;
-  }
+    public void save(SonarLintGlobalSettings settings) {
+        this.settings = settings;
+    }
 
-  private void initializeRulesByKey() {
-    settings.rulesByKey = new HashMap<>(settings.rules.stream().collect(Collectors.toMap(SonarLintGlobalSettings.Rule::getKey, Function.identity())));
-  }
+    private void initializeRulesByKey() {
+        settings.rulesByKey = new HashMap<>(
+            settings.rules.stream().collect(
+                Collectors.toMap(SonarLintGlobalSettings.Rule::getKey, Function.identity())
+            )
+        );
+    }
 }

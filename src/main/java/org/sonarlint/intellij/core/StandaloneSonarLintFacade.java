@@ -44,61 +44,82 @@ import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneAnalysisCo
 import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneSonarLintEngine;
 import org.sonarsource.sonarlint.core.commons.RuleKey;
 import org.sonarsource.sonarlint.core.commons.progress.ClientProgressMonitor;
+import com.intellij.openapi.diagnostic.Logger;
 
 import static org.sonarlint.intellij.config.Settings.getGlobalSettings;
 
 final class StandaloneSonarLintFacade extends SonarLintFacade {
-  private final StandaloneSonarLintEngine sonarlint;
 
-  StandaloneSonarLintFacade(Project project, StandaloneSonarLintEngine engine) {
-    super(project);
-    Preconditions.checkNotNull(project, "project");
-    Preconditions.checkNotNull(project.getBasePath(), "project base path");
-    Preconditions.checkNotNull(engine, "engine");
-    this.sonarlint = engine;
-  }
+    static final Logger log = Logger.getInstance(StandaloneSonarLintFacade.class);
 
-  @Override
-  protected AnalysisResults analyze(Module module, Path baseDir, Path workDir, Collection<ClientInputFile> inputFiles, Map<String, String> props,
-    IssueListener issueListener, ClientProgressMonitor progressMonitor) {
-    var excluded = new ArrayList<RuleKey>();
-    var included = new ArrayList<RuleKey>();
-    var params = new HashMap<RuleKey, Map<String, String>>();
-    getGlobalSettings().getRulesByKey().forEach((k, v) -> {
-      var key = RuleKey.parse(k);
-      if (v.isActive()) {
-        included.add(key);
-        params.put(key, v.getParams());
-      } else {
-        excluded.add(key);
-      }
-    });
+    private final StandaloneSonarLintEngine sonarlint;
 
-    var config = StandaloneAnalysisConfiguration.builder()
-      .setBaseDir(baseDir)
-      .addInputFiles(inputFiles)
-      .putAllExtraProperties(props)
-      .addExcludedRules(excluded)
-      .addIncludedRules(included)
-      .addRuleParameters(params)
-      .setModuleKey(module)
-      .build();
+    StandaloneSonarLintFacade(Project project, StandaloneSonarLintEngine engine) {
+        super(project);
+        Preconditions.checkNotNull(project, "project");
+        Preconditions.checkNotNull(project.getBasePath(), "project base path");
+        Preconditions.checkNotNull(engine, "engine");
+        this.sonarlint = engine;
+    }
 
-    var console = SonarLintUtils.getService(project, SonarLintConsole.class);
-    console.debug("Starting analysis with configuration:\n" + config.toString());
-    final var analysisResults = sonarlint.analyze(config, issueListener, new ProjectLogOutput(project), progressMonitor);
-    AnalysisRequirementNotifications.notifyOnceForSkippedPlugins(analysisResults, sonarlint.getPluginDetails(), project);
-    return analysisResults;
-  }
+    @Override
+    protected AnalysisResults analyze(
+        Module module,
+        Path baseDir,
+        Path workDir,
+        Collection<ClientInputFile> inputFiles,
+        Map<String, String> props,
+        IssueListener issueListener,
+        ClientProgressMonitor progressMonitor
+    ) {
+        var excluded = new ArrayList<RuleKey>();
+        var included = new ArrayList<RuleKey>();
+        var params = new HashMap<RuleKey, Map<String, String>>();
+        getGlobalSettings().getRulesByKey().forEach(
+            (k, v) -> {
+                var key = RuleKey.parse(k);
+                if (v.isActive()) {
+                    log.info(String.format("key --- %s", key.toString()));
+                    included.add(key);
+                    params.put(key, v.getParams());
+                } else {
+                    excluded.add(key);
+                }
+            }
+        );
+        var config = StandaloneAnalysisConfiguration
+            .builder()
+            .setBaseDir(baseDir)
+            .addInputFiles(inputFiles)
+            .putAllExtraProperties(props)
+            .addExcludedRules(excluded)
+            .addIncludedRules(included)
+            .addRuleParameters(params)
+            .setModuleKey(module)
+            .build();
+        var console = SonarLintUtils.getService(project, SonarLintConsole.class);
+        console.debug("Starting analysis with configuration:\n" + config.toString());
+        final var analysisResults = sonarlint.analyze(
+            config, issueListener, new ProjectLogOutput(project), progressMonitor
+        );
+        AnalysisRequirementNotifications.notifyOnceForSkippedPlugins(
+            analysisResults, sonarlint.getPluginDetails(), project
+        );
+        return analysisResults;
+    }
 
-  @Override
-  public Collection<VirtualFile> getExcluded(Module module, Collection<VirtualFile> files, Predicate<VirtualFile> testPredicate) {
-    return Collections.emptyList();
-  }
+    @Override
+    public Collection<VirtualFile> getExcluded(
+        Module module,
+        Collection<VirtualFile> files,
+        Predicate<VirtualFile> testPredicate
+    ) {
+        return Collections.emptyList();
+    }
 
-  @Override
-  public Collection<PluginDetails> getPluginDetails() {
-    return sonarlint.getPluginDetails();
-  }
+    @Override
+    public Collection<PluginDetails> getPluginDetails() {
+        return sonarlint.getPluginDetails();
+    }
 
 }

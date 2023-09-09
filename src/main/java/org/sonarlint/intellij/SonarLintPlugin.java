@@ -25,27 +25,35 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.extensions.PluginId;
 import java.nio.file.Path;
 import org.sonarlint.intellij.http.ApacheHttpClient;
+import com.intellij.openapi.diagnostic.Logger;
 
 public class SonarLintPlugin implements Disposable {
-  private IdeaPluginDescriptor plugin;
 
-  public String getVersion() {
-    return getPlugin().getVersion();
-  }
+    static final Logger log = Logger.getInstance(SonarLintPlugin.class);
 
-  public Path getPath() {
-    return getPlugin().getPluginPath();
-  }
+    private IdeaPluginDescriptor plugin;
 
-  private IdeaPluginDescriptor getPlugin() {
-    if (plugin == null) {
-      plugin = PluginManagerCore.getPlugin(PluginId.getId("org.sonarlint.idea"));
+    public SonarLintPlugin() {
+        log.info("--- SonarLintPlugin.SonarLintPlugin");
     }
-    return plugin;
-  }
 
-  @Override
-  public void dispose() {
-    ApacheHttpClient.getDefault().close();
-  }
+    public String getVersion() {
+        return getPlugin().getVersion();
+    }
+
+    public Path getPath() {
+        return getPlugin().getPluginPath();
+    }
+
+    private IdeaPluginDescriptor getPlugin() {
+        if (plugin == null) {
+            plugin = PluginManagerCore.getPlugin(PluginId.getId("org.sonarlint.idea"));
+        }
+        return plugin;
+    }
+
+    @Override
+    public void dispose() {
+        ApacheHttpClient.getDefault().close();
+    }
 }

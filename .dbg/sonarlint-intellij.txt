@@ -1,0 +1,62 @@
+Plugin 'pmd' embeds dependencies. This will be deprecated soon. Plugin should be updated.
+Using connection 'dev' for project 'console.wuxing-cs'
+Analysing 18 files...
+Error running SonarLint analysis
+java.lang.IllegalStateException: Unable to load component class org.sonarsource.sonarlint.core.analysis.container.analysis.sensor.SensorsExecutor
+	at org.sonarsource.sonarlint.core.plugin.commons.container.SpringComponentContainer.getComponentByType(SpringComponentContainer.java:160)
+	at org.sonarsource.sonarlint.core.analysis.container.analysis.AnalysisContainer.doAfterStart(AnalysisContainer.java:117)
+	at org.sonarsource.sonarlint.core.plugin.commons.container.SpringComponentContainer.startComponents(SpringComponentContainer.java:210)
+	at org.sonarsource.sonarlint.core.plugin.commons.container.SpringComponentContainer.execute(SpringComponentContainer.java:189)
+	at org.sonarsource.sonarlint.core.analysis.container.module.ModuleContainer.analyze(ModuleContainer.java:85)
+	at org.sonarsource.sonarlint.core.analysis.command.AnalyzeCommand.execute(AnalyzeCommand.java:64)
+	at org.sonarsource.sonarlint.core.analysis.command.AnalyzeCommand.execute(AnalyzeCommand.java:32)
+	at org.sonarsource.sonarlint.core.analysis.AnalysisEngine$AsyncCommand.execute(AnalysisEngine.java:161)
+	at org.sonarsource.sonarlint.core.analysis.AnalysisEngine.executeQueuedCommands(AnalysisEngine.java:77)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+Caused by: org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'PluginClassLoader[PluginDescriptor(name=SonarLint, id=org.sonarlint.idea, path=/home/qstesiro/github.com/qstesiro/sonarlint-intellij/its/build/idea-sandbox/plugins-uiTest/sonarlint-intellij, version=7.4-SNAPSHOT)] com.intellij.ide.plugins.cl.PluginClassLoader@51cf5999-org.sonarsource.sonarlint.core.analysis.container.analysis.sensor.SensorsExecutor': Unsatisfied dependency expressed through constructor parameter 3; nested exception is org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'ClassRealm{pmd}-org.sonar.plugins.pmd.PmdSensor': Unsatisfied dependency expressed through constructor parameter 1; nested exception is org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.NoSuchBeanDefinitionException: No qualifying bean of type 'org.sonar.plugins.pmd.PmdExecutor' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:800)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:229)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1372)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1222)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:582)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:542)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:335)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:333)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:233)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveNamedBean(DefaultListableBeanFactory.java:1284)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveNamedBean(DefaultListableBeanFactory.java:1245)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveBean(DefaultListableBeanFactory.java:494)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.getBean(DefaultListableBeanFactory.java:349)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.getBean(DefaultListableBeanFactory.java:342)
+	at org.sonarsource.sonarlint.shaded.org.springframework.context.support.AbstractApplicationContext.getBean(AbstractApplicationContext.java:1172)
+	at org.sonarsource.sonarlint.core.plugin.commons.container.SpringComponentContainer.getComponentByType(SpringComponentContainer.java:158)
+	... 9 more
+Caused by: org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'ClassRealm{pmd}-org.sonar.plugins.pmd.PmdSensor': Unsatisfied dependency expressed through constructor parameter 1; nested exception is org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.NoSuchBeanDefinitionException: No qualifying bean of type 'org.sonar.plugins.pmd.PmdExecutor' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:800)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:229)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1372)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1222)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:582)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:542)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:335)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:333)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:208)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.config.DependencyDescriptor.resolveCandidate(DependencyDescriptor.java:276)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.addCandidateEntry(DefaultListableBeanFactory.java:1609)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.findAutowireCandidates(DefaultListableBeanFactory.java:1573)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveMultipleBeans(DefaultListableBeanFactory.java:1462)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1349)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.createOptionalDependency(DefaultListableBeanFactory.java:1852)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1298)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:887)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:791)
+	... 25 more
+Caused by: org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.NoSuchBeanDefinitionException: No qualifying bean of type 'org.sonar.plugins.pmd.PmdExecutor' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.raiseNoMatchingBeanFound(DefaultListableBeanFactory.java:1801)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1357)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1311)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:887)
+	at org.sonarsource.sonarlint.shaded.org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:791)
+	... 43 more

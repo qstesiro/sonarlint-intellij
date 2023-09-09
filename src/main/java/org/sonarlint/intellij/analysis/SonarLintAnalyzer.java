@@ -27,6 +27,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.TestSourcesFilter;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.encoding.EncodingProjectManager;
+import com.intellij.openapi.diagnostic.Logger;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashMap;
@@ -52,139 +53,241 @@ import org.sonarsource.sonarlint.core.commons.progress.ClientProgressMonitor;
 
 public class SonarLintAnalyzer {
 
-  private final Project myProject;
+    static final Logger log = Logger.getInstance(SonarLintAnalyzer.class);
 
-  public SonarLintAnalyzer(Project project) {
-    myProject = project;
-  }
+    private final Project myProject;
 
-  public AnalysisResults analyzeModule(Module module, Collection<VirtualFile> filesToAnalyze, IssueListener listener, ClientProgressMonitor progressMonitor) {
-    // Configure plugin properties. Nothing might be done if there is no configurator available for the extensions loaded in runtime.
-    var start = System.currentTimeMillis();
-    var console = SonarLintUtils.getService(myProject, SonarLintConsole.class);
-    var contributedConfigurations = getConfigurationFromConfiguratorEP(module, filesToAnalyze, console);
-
-    var contributedProperties = collectContributedExtraProperties(console, contributedConfigurations);
-
-    var contributedLanguages = collectContributedLanguages(console, contributedConfigurations);
-
-    // configure files
-    var inputFiles = getInputFiles(module, filesToAnalyze, contributedLanguages);
-
-    // Analyze
-
-    try {
-      var projectBindingManager = SonarLintUtils.getService(myProject, ProjectBindingManager.class);
-      var facade = projectBindingManager.getFacade(module, true);
-
-      var what = filesToAnalyze.size() == 1 ?
-        String.format("'%s'", filesToAnalyze.iterator().next().getName()) :
-        String.format("%d files", filesToAnalyze.size());
-
-      console.info("Analysing " + what + "...");
-      var result = facade.startAnalysis(module, inputFiles, listener, contributedProperties, progressMonitor);
-      console.debug("Done in " + (System.currentTimeMillis() - start) + "ms\n");
-      var telemetry = SonarLintUtils.getService(SonarLintTelemetry.class);
-      if (result.languagePerFile().size() == 1 && result.failedAnalysisFiles().isEmpty()) {
-        telemetry.analysisDoneOnSingleLanguage(result.languagePerFile().values().iterator().next(), (int) (System.currentTimeMillis() - start));
-      } else {
-        telemetry.analysisDoneOnMultipleFiles();
-      }
-
-      return result;
-    } catch (InvalidBindingException e) {
-      // should not happen, as analysis should not have been submitted in this case.
-      throw new IllegalStateException(e);
+    public SonarLintAnalyzer(Project project) {
+        myProject = project;
     }
-  }
 
-  @NotNull
-  private static Map<String, String> collectContributedExtraProperties(SonarLintConsole console, List<AnalysisConfigurator.AnalysisConfiguration> contributedConfigurations) {
-    var contributedProperties = new HashMap<String, String>();
-    for (var config : contributedConfigurations) {
-      for (var entry : config.extraProperties.entrySet()) {
-        if (contributedProperties.containsKey(entry.getKey()) && !Objects.equals(contributedProperties.get(entry.getKey()), entry.getValue())) {
-          console.error("The same property " + entry.getKey() + " was contributed by multiple configurators with different values: " +
-            contributedProperties.get(entry.getKey()) + " / " + entry.getValue());
+    public AnalysisResults analyzeModule(
+        Module module,
+        Collection<VirtualFile> filesToAnalyze,
+        IssueListener listener,
+        ClientProgressMonitor progressMonitor
+    ) {
+        // Configure plugin properties.
+        // Nothing might be done if there is no configurator available for the extensions loaded in runtime.
+        var start = System.currentTimeMillis();
+        var console = SonarLintUtils.getService(myProject, SonarLintConsole.class);
+        var contributedConfigurations = getConfigurationFromConfiguratorEP(module, filesToAnalyze, console);
+        var contributedProperties = collectContributedExtraProperties(console, contributedConfigurations);
+        var contributedLanguages = collectContributedLanguages(console, contributedConfigurations);
+        // configure files
+        var inputFiles = getInputFiles(module, filesToAnalyze, contributedLanguages);
+        // Analyze
+        try {
+            var projectBindingManager = SonarLintUtils.getService(myProject, ProjectBindingManager.class);
+            var facade = projectBindingManager.getFacade(module, true);
+            var what = filesToAnalyze.size() == 1 ?
+                String.format("'%s'", filesToAnalyze.iterator().next().getName()) :
+                String.format("%d files", filesToAnalyze.size());
+            console.info("Analysing " + what + "...");
+            var result = facade.startAnalysis(module, inputFiles, listener, contributedProperties, progressMonitor);
+            console.debug("Done in " + (System.currentTimeMillis() - start) + "ms\n");
+            var telemetry = SonarLintUtils.getService(SonarLintTelemetry.class);
+            if (result.languagePerFile().size() == 1 &&
+                result.failedAnalysisFiles().isEmpty()) {
+                telemetry.analysisDoneOnSingleLanguage(
+                    result.languagePerFile().values().iterator().next(),
+                    (int)(System.currentTimeMillis() - start)
+                );
+            } else {
+                telemetry.analysisDoneOnMultipleFiles();
+            }
+            return result;
+        } catch (InvalidBindingException e) {
+            // should not happen, as analysis should not have been submitted in this case.
+            throw new IllegalStateException(e);
         }
-        contributedProperties.put(entry.getKey(), entry.getValue());
-      }
     }
-    return contributedProperties;
-  }
 
-  @NotNull
-  private static Map<VirtualFile, Language> collectContributedLanguages(SonarLintConsole console, List<AnalysisConfigurator.AnalysisConfiguration> contributedConfigurations) {
-    var contributedLanguages = new HashMap<VirtualFile, Language>();
-    for (var config : contributedConfigurations) {
-      for (var entry : config.forcedLanguages.entrySet()) {
-        if (contributedLanguages.containsKey(entry.getKey()) && !Objects.equals(contributedLanguages.get(entry.getKey()), entry.getValue())) {
-          console.error("The same file " + entry.getKey() + " has its language forced by multiple configurators with different values: " +
-            contributedLanguages.get(entry.getKey()) + " / " + entry.getValue());
+    @NotNull
+    private static Map<String, String> collectContributedExtraProperties(
+        SonarLintConsole console,
+        List<AnalysisConfigurator.AnalysisConfiguration> contributedConfigurations
+    ) {
+        log.info("--- SonarLintAnalyzer.collectContributedExtraProperties"); // ???
+        var contributedProperties = new HashMap<String, String>();
+        for (var config : contributedConfigurations) {
+            for (var entry : config.extraProperties.entrySet()) {
+                if (contributedProperties.containsKey(entry.getKey()) &&
+                    !Objects.equals(contributedProperties.get(entry.getKey()), entry.getValue())) {
+                    console.error(
+                        "The same property " +
+                        entry.getKey() +
+                        " was contributed by multiple configurators with different values: "
+                        + contributedProperties.get(entry.getKey()) + " / " + entry.getValue()
+                    );
+                }
+                // ???
+                // log.info(
+                //     String.format(
+                //         "key: %s, value: %s",
+                //         entry.getKey().toString(),
+                //         entry.getValue().toString()
+                //     )
+                // );
+                contributedProperties.put(entry.getKey(), entry.getValue());
+            }
         }
-        contributedLanguages.put(entry.getKey(), entry.getValue());
-      }
+        return contributedProperties;
     }
-    return contributedLanguages;
-  }
 
-  @NotNull
-  private static List<AnalysisConfigurator.AnalysisConfiguration> getConfigurationFromConfiguratorEP(Module module, Collection<VirtualFile> filesToAnalyze,
-    SonarLintConsole console) {
-    return AnalysisConfigurator.EP_NAME.getExtensionList().stream()
-      .map(config -> {
-        console.debug("Configuring analysis with " + config.getClass().getName());
-        return config.configure(module, filesToAnalyze);
-      })
-      .collect(Collectors.toList());
-  }
-
-  private List<ClientInputFile> getInputFiles(Module module, Collection<VirtualFile> filesToAnalyze, Map<VirtualFile, Language> contributedLanguages) {
-    return ApplicationManager.getApplication().<List<ClientInputFile>>runReadAction(() -> filesToAnalyze.stream()
-      .map(f -> createClientInputFile(module, f, contributedLanguages.get(f)))
-      .filter(Objects::nonNull)
-      .collect(Collectors.toList()));
-  }
-
-  @CheckForNull
-  public ClientInputFile createClientInputFile(Module module, VirtualFile virtualFile, @Nullable Language language) {
-    var test = TestSourcesFilter.isTestSources(virtualFile, module.getProject());
-    var charset = getEncoding(virtualFile);
-    var relativePath = SonarLintAppUtils.getRelativePathForAnalysis(module, virtualFile);
-    if (relativePath != null) {
-      var fileDocumentManager = FileDocumentManager.getInstance();
-      if (fileDocumentManager.isFileModified(virtualFile)) {
-        return createInputFileFromDocument(virtualFile, language, test, charset, relativePath);
-      } else {
-        return new DefaultClientInputFile(virtualFile, relativePath, test, charset, null, readDocumentModificationStamp(virtualFile), language);
-      }
+    @NotNull
+    private static Map<VirtualFile, Language> collectContributedLanguages(
+        SonarLintConsole console,
+        List<AnalysisConfigurator.AnalysisConfiguration> contributedConfigurations
+    ) {
+        log.info("--- SonarLintAnalyzer.collectContributedLanguages"); // ???
+        var contributedLanguages = new HashMap<VirtualFile, Language>();
+        for (var config : contributedConfigurations) {
+            for (var entry : config.forcedLanguages.entrySet()) {
+                if (contributedLanguages.containsKey(entry.getKey()) &&
+                    !Objects.equals(contributedLanguages.get(entry.getKey()), entry.getValue())) {
+                    console.error(
+                        "The same file " +
+                        entry.getKey() +
+                        " has its language forced by multiple configurators with different values: " +
+                        contributedLanguages.get(entry.getKey()) + " / " + entry.getValue()
+                    );
+                }
+                // ???
+                // log.info(
+                //     String.format(
+                //         "key: %s, value: %s",
+                //         entry.getKey().getName(),
+                //         entry.getValue().toString()
+                //     )
+                // );
+                contributedLanguages.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return contributedLanguages;
     }
-    return null;
-  }
 
-  private static DefaultClientInputFile createInputFileFromDocument(VirtualFile virtualFile, @org.jetbrains.annotations.Nullable Language language, boolean test, Charset charset,
-    String relativePath) {
-    return ReadAction.compute(() -> {
-      var document = FileDocumentManager.getInstance().getDocument(virtualFile);
-      var textInDocument = document != null ? document.getText() : null;
-      var documentModificationStamp = document != null ? document.getModificationStamp() : 0;
-      return new DefaultClientInputFile(virtualFile, relativePath, test, charset, textInDocument, documentModificationStamp, language);
-    });
-  }
-
-  private static long readDocumentModificationStamp(VirtualFile virtualFile) {
-    return ReadAction.compute(() -> {
-      var document = FileDocumentManager.getInstance().getDocument(virtualFile);
-      return document != null ? document.getModificationStamp() : 0;
-    });
-  }
-
-  private Charset getEncoding(VirtualFile f) {
-    var encodingProjectManager = EncodingProjectManager.getInstance(myProject);
-    var encoding = encodingProjectManager.getEncoding(f, true);
-    if (encoding != null) {
-      return encoding;
+    @NotNull
+    private static List<AnalysisConfigurator.AnalysisConfiguration> getConfigurationFromConfiguratorEP(
+        Module module, Collection<VirtualFile> filesToAnalyze,
+        SonarLintConsole console
+    ) {
+        log.info("--- SonarLintAnalyzer.getConfigurationFromConfiguratorEP"); // ???
+        var lst = AnalysisConfigurator.EP_NAME.getExtensionList().stream()
+            .map(
+                config -> {
+                    console.debug("Configuring analysis with " + config.getClass().getName());
+                    return config.configure(module, filesToAnalyze);
+                }
+            )
+            .collect(Collectors.toList());
+        // ???
+        // for (var e : lst) {
+        //     for (var entry : e.extraProperties.entrySet()) {
+        //         log.info(
+        //             String.format(
+        //                 "extraProperties --- key: %s, value: %s",
+        //                 entry.getKey(),
+        //                 entry.getValue()
+        //             )
+        //         );
+        //     }
+        //     for (var entry : e.forcedLanguages.entrySet()) {
+        //         log.info(
+        //             String.format(
+        //                "forcedLanguages --- key: %s, value: %s",
+        //                 entry.getKey().getName(),
+        //                 entry.getValue().toString()
+        //             )
+        //         );
+        //     }
+        // }
+        return lst;
     }
-    return Charset.defaultCharset();
-  }
+
+    private List<ClientInputFile> getInputFiles(
+        Module module,
+        Collection<VirtualFile> filesToAnalyze,
+        Map<VirtualFile, Language> contributedLanguages
+    ) {
+        return ApplicationManager.getApplication().<List<ClientInputFile>>runReadAction(
+            () -> {
+                return filesToAnalyze.stream()
+                    .map(f -> createClientInputFile(module, f, contributedLanguages.get(f)))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            }
+        );
+    }
+
+    @CheckForNull
+    public ClientInputFile createClientInputFile(
+        Module module,
+        VirtualFile virtualFile,
+        @Nullable Language language
+    ) {
+        var test = TestSourcesFilter.isTestSources(virtualFile, module.getProject());
+        var charset = getEncoding(virtualFile);
+        var relativePath = SonarLintAppUtils.getRelativePathForAnalysis(module, virtualFile);
+        if (relativePath != null) {
+            var fileDocumentManager = FileDocumentManager.getInstance();
+            if (fileDocumentManager.isFileModified(virtualFile)) {
+                return createInputFileFromDocument(virtualFile, language, test, charset, relativePath);
+            } else {
+                return new DefaultClientInputFile(
+                    virtualFile,
+                    relativePath,
+                    test,
+                    charset,
+                    null,
+                    readDocumentModificationStamp(virtualFile),
+                    language
+                );
+            }
+        }
+        return null;
+    }
+
+    private static DefaultClientInputFile createInputFileFromDocument(
+        VirtualFile virtualFile,
+        @org.jetbrains.annotations.Nullable Language language,
+        boolean test,
+        Charset charset,
+        String relativePath
+    ) {
+        return ReadAction.compute(
+            () -> {
+                var document = FileDocumentManager.getInstance().getDocument(virtualFile);
+                var textInDocument = document != null ? document.getText() : null;
+                var documentModificationStamp = document != null ? document.getModificationStamp() : 0;
+                return new DefaultClientInputFile(
+                    virtualFile,
+                    relativePath,
+                    test,
+                    charset,
+                    textInDocument,
+                    documentModificationStamp,
+                    language
+                );
+            }
+        );
+    }
+
+    private static long readDocumentModificationStamp(VirtualFile virtualFile) {
+        return ReadAction.compute(
+            () -> {
+                var document = FileDocumentManager.getInstance().getDocument(virtualFile);
+                return document != null ? document.getModificationStamp() : 0;
+            }
+        );
+    }
+
+    private Charset getEncoding(VirtualFile f) {
+        var encodingProjectManager = EncodingProjectManager.getInstance(myProject);
+        var encoding = encodingProjectManager.getEncoding(f, true);
+        if (encoding != null) {
+            return encoding;
+        }
+        return Charset.defaultCharset();
+    }
 }
