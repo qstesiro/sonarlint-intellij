@@ -27,22 +27,22 @@ import org.sonarlint.intellij.common.util.SonarLintUtils;
 
 public interface SonarLintConsole {
 
-  static SonarLintConsole get(@NotNull Project p) {
-    return SonarLintUtils.getService(p, SonarLintConsole.class);
-  }
+    static SonarLintConsole get(@NotNull Project p) {
+        return SonarLintUtils.getService(p, SonarLintConsole.class);
+    }
 
-  void debug(String msg);
+    void debug(String msg);
 
-  boolean debugEnabled();
+    boolean debugEnabled();
 
-  void info(String msg);
+    void info(String msg);
 
-  void error(String msg);
+    void error(String msg);
 
-  void error(String msg, @Nullable Throwable t);
+    void error(String msg, @Nullable Throwable t);
 
-  void clear();
+    void clear();
 
-  ConsoleView getConsoleView();
+    ConsoleView getConsoleView();
 
 }

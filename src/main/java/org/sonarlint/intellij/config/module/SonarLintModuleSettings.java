@@ -22,39 +22,40 @@ package org.sonarlint.intellij.config.module;
 import static org.sonarlint.intellij.common.util.SonarLintUtils.isBlank;
 
 public final class SonarLintModuleSettings {
-  private String sqPathPrefix = "";
-  private String idePathPrefix = "";
-  private String projectKey = "";
 
-  public String getProjectKey() {
-    return projectKey;
-  }
+    private String sqPathPrefix = "";
+    private String idePathPrefix = "";
+    private String projectKey = "";
 
-  public void setProjectKey(String projectKey) {
-    this.projectKey = projectKey;
-  }
+    public String getProjectKey() {
+        return projectKey;
+    }
 
-  public boolean isProjectBindingOverridden() {
-    return !isBlank(projectKey);
-  }
+    public void setProjectKey(String projectKey) {
+        this.projectKey = projectKey;
+    }
 
-  public void clearBindingOverride() {
-    this.projectKey = "";
-  }
+    public boolean isProjectBindingOverridden() {
+        return !isBlank(projectKey);
+    }
 
-  public String getSqPathPrefix() {
-    return sqPathPrefix;
-  }
+    public void clearBindingOverride() {
+        this.projectKey = "";
+    }
 
-  public void setSqPathPrefix(String sqPathPrefix) {
-    this.sqPathPrefix = sqPathPrefix;
-  }
+    public String getSqPathPrefix() {
+        return sqPathPrefix;
+    }
 
-  public String getIdePathPrefix() {
-    return idePathPrefix;
-  }
+    public void setSqPathPrefix(String sqPathPrefix) {
+        this.sqPathPrefix = sqPathPrefix;
+    }
 
-  public void setIdePathPrefix(String idePathPrefix) {
-    this.idePathPrefix = idePathPrefix;
-  }
+    public String getIdePathPrefix() {
+        return idePathPrefix;
+    }
+
+    public void setIdePathPrefix(String idePathPrefix) {
+        this.idePathPrefix = idePathPrefix;
+    }
 }

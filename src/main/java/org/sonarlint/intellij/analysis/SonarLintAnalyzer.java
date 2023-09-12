@@ -108,7 +108,6 @@ public class SonarLintAnalyzer {
         SonarLintConsole console,
         List<AnalysisConfigurator.AnalysisConfiguration> contributedConfigurations
     ) {
-        log.info("--- SonarLintAnalyzer.collectContributedExtraProperties"); // ???
         var contributedProperties = new HashMap<String, String>();
         for (var config : contributedConfigurations) {
             for (var entry : config.extraProperties.entrySet()) {
@@ -121,14 +120,6 @@ public class SonarLintAnalyzer {
                         + contributedProperties.get(entry.getKey()) + " / " + entry.getValue()
                     );
                 }
-                // ???
-                // log.info(
-                //     String.format(
-                //         "key: %s, value: %s",
-                //         entry.getKey().toString(),
-                //         entry.getValue().toString()
-                //     )
-                // );
                 contributedProperties.put(entry.getKey(), entry.getValue());
             }
         }
@@ -140,7 +131,6 @@ public class SonarLintAnalyzer {
         SonarLintConsole console,
         List<AnalysisConfigurator.AnalysisConfiguration> contributedConfigurations
     ) {
-        log.info("--- SonarLintAnalyzer.collectContributedLanguages"); // ???
         var contributedLanguages = new HashMap<VirtualFile, Language>();
         for (var config : contributedConfigurations) {
             for (var entry : config.forcedLanguages.entrySet()) {
@@ -153,14 +143,6 @@ public class SonarLintAnalyzer {
                         contributedLanguages.get(entry.getKey()) + " / " + entry.getValue()
                     );
                 }
-                // ???
-                // log.info(
-                //     String.format(
-                //         "key: %s, value: %s",
-                //         entry.getKey().getName(),
-                //         entry.getValue().toString()
-                //     )
-                // );
                 contributedLanguages.put(entry.getKey(), entry.getValue());
             }
         }
@@ -172,7 +154,6 @@ public class SonarLintAnalyzer {
         Module module, Collection<VirtualFile> filesToAnalyze,
         SonarLintConsole console
     ) {
-        log.info("--- SonarLintAnalyzer.getConfigurationFromConfiguratorEP"); // ???
         var lst = AnalysisConfigurator.EP_NAME.getExtensionList().stream()
             .map(
                 config -> {
@@ -181,27 +162,6 @@ public class SonarLintAnalyzer {
                 }
             )
             .collect(Collectors.toList());
-        // ???
-        // for (var e : lst) {
-        //     for (var entry : e.extraProperties.entrySet()) {
-        //         log.info(
-        //             String.format(
-        //                 "extraProperties --- key: %s, value: %s",
-        //                 entry.getKey(),
-        //                 entry.getValue()
-        //             )
-        //         );
-        //     }
-        //     for (var entry : e.forcedLanguages.entrySet()) {
-        //         log.info(
-        //             String.format(
-        //                "forcedLanguages --- key: %s, value: %s",
-        //                 entry.getKey().getName(),
-        //                 entry.getValue().toString()
-        //             )
-        //         );
-        //     }
-        // }
         return lst;
     }
 

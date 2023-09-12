@@ -29,24 +29,24 @@ import org.jetbrains.annotations.NotNull;
 @State(name = "SonarLintModuleSettings", storages = @Storage(StoragePathMacros.MODULE_FILE))
 public final class SonarLintModuleSettingsStore implements PersistentStateComponent<SonarLintModuleSettings> {
 
-  private SonarLintModuleSettings settings = new SonarLintModuleSettings();
+    private SonarLintModuleSettings settings = new SonarLintModuleSettings();
 
-  public SonarLintModuleSettingsStore() {
-  }
+    public SonarLintModuleSettingsStore() {
+    }
 
-  @NonInjectable
-  public SonarLintModuleSettingsStore(SonarLintModuleSettings toCopy) {
-    loadState(toCopy);
-  }
+    @NonInjectable
+    public SonarLintModuleSettingsStore(SonarLintModuleSettings toCopy) {
+        loadState(toCopy);
+    }
 
-  @Override
-  public SonarLintModuleSettings getState() {
-    return settings;
-  }
+    @Override
+    public SonarLintModuleSettings getState() {
+        return settings;
+    }
 
-  @Override
-  public void loadState(@NotNull SonarLintModuleSettings settings) {
-    this.settings = settings;
-  }
+    @Override
+    public void loadState(@NotNull SonarLintModuleSettings settings) {
+        this.settings = settings;
+    }
 
 }

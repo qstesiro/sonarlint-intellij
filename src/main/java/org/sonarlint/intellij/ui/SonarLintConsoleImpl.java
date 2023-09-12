@@ -35,70 +35,70 @@ import static org.sonarlint.intellij.config.Settings.getSettingsFor;
 
 public class SonarLintConsoleImpl implements SonarLintConsole, Disposable {
 
-  private ConsoleView consoleView;
-  private final Project myProject;
+    private ConsoleView consoleView;
+    private final Project myProject;
 
-  public SonarLintConsoleImpl(Project project) {
-    this.myProject = project;
-  }
-
-  @NonInjectable
-  SonarLintConsoleImpl(Project project, ConsoleView consoleView) {
-    this.consoleView = consoleView;
-    this.myProject = project;
-  }
-
-  @Override
-  public void debug(String msg) {
-    if (debugEnabled()) {
-      getConsoleView().print(msg + "\n", ConsoleViewContentType.NORMAL_OUTPUT);
+    public SonarLintConsoleImpl(Project project) {
+        this.myProject = project;
     }
-  }
 
-  @Override
-  public boolean debugEnabled() {
-    return getSettingsFor(myProject).isVerboseEnabled();
-  }
-
-  @Override
-  public void info(String msg) {
-    getConsoleView().print(msg + "\n", ConsoleViewContentType.NORMAL_OUTPUT);
-  }
-
-  @Override
-  public void error(String msg) {
-    getConsoleView().print(msg + "\n", ConsoleViewContentType.ERROR_OUTPUT);
-  }
-
-  @Override
-  public void error(String msg, @Nullable Throwable t) {
-    error(msg);
-    if (t != null) {
-      var errors = new StringWriter();
-      t.printStackTrace(new PrintWriter(errors));
-      error(errors.toString());
+    @NonInjectable
+    SonarLintConsoleImpl(Project project, ConsoleView consoleView) {
+        this.consoleView = consoleView;
+        this.myProject = project;
     }
-  }
 
-  @Override
-  public synchronized void clear() {
-    if (consoleView != null) {
-      consoleView.clear();
+    @Override
+    public void debug(String msg) {
+        if (debugEnabled()) {
+            getConsoleView().print(msg + "\n", ConsoleViewContentType.NORMAL_OUTPUT);
+        }
     }
-  }
 
-  @Override
-  public synchronized ConsoleView getConsoleView() {
-    if (consoleView == null) {
-      consoleView = TextConsoleBuilderFactory.getInstance().createBuilder(myProject).getConsole();
+    @Override
+    public boolean debugEnabled() {
+        return getSettingsFor(myProject).isVerboseEnabled();
     }
-    return this.consoleView;
-  }
 
-  @Override
-  public void dispose() {
-    if (consoleView != null) {
-      Disposer.dispose(consoleView);
+    @Override
+    public void info(String msg) {
+        getConsoleView().print(msg + "\n", ConsoleViewContentType.NORMAL_OUTPUT);
     }
-  }
+
+    @Override
+    public void error(String msg) {
+        getConsoleView().print(msg + "\n", ConsoleViewContentType.ERROR_OUTPUT);
+    }
+
+    @Override
+    public void error(String msg, @Nullable Throwable t) {
+        error(msg);
+        if (t != null) {
+            var errors = new StringWriter();
+            t.printStackTrace(new PrintWriter(errors));
+            error(errors.toString());
+        }
+    }
+
+    @Override
+    public synchronized void clear() {
+        if (consoleView != null) {
+            consoleView.clear();
+        }
+    }
+
+    @Override
+    public synchronized ConsoleView getConsoleView() {
+        if (consoleView == null) {
+            consoleView = TextConsoleBuilderFactory.getInstance().createBuilder(myProject).getConsole();
+        }
+        return this.consoleView;
+    }
+
+    @Override
+    public void dispose() {
+        if (consoleView != null) {
+            Disposer.dispose(consoleView);
+        }
+    }
 }

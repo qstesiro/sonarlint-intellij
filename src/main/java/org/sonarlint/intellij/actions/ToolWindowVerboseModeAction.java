@@ -27,22 +27,23 @@ import com.intellij.openapi.project.DumbAware;
 import static org.sonarlint.intellij.config.Settings.getSettingsFor;
 
 public class ToolWindowVerboseModeAction extends ToggleAction implements DumbAware {
-  public ToolWindowVerboseModeAction() {
-    super("Verbose output", "Enable verbose output for SonarLint analysis",
-      AllIcons.Actions.StartDebugger);
-  }
 
-  @Override
-  public boolean isSelected(AnActionEvent event) {
-    var p = event.getProject();
-    return p != null && getSettingsFor(p).isVerboseEnabled();
-  }
-
-  @Override
-  public void setSelected(AnActionEvent event, boolean flag) {
-    var p = event.getProject();
-    if (p != null) {
-      getSettingsFor(p).setVerboseEnabled(flag);
+    public ToolWindowVerboseModeAction() {
+        super("Verbose output", "Enable verbose output for SonarLint analysis",
+              AllIcons.Actions.StartDebugger);
     }
-  }
+
+    @Override
+    public boolean isSelected(AnActionEvent event) {
+        var p = event.getProject();
+        return p != null && getSettingsFor(p).isVerboseEnabled();
+    }
+
+    @Override
+    public void setSelected(AnActionEvent event, boolean flag) {
+        var p = event.getProject();
+        if (p != null) {
+            getSettingsFor(p).setVerboseEnabled(flag);
+        }
+    }
 }
