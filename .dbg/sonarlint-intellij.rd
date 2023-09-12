@@ -12,7 +12,8 @@
                      ./gradlew buildPlugin --console plain --daemon &&
                      ./gradlew :its:runIdeForUiTests --console plain --daemon"
     alias build="./gradlew buildPlugin --console plain --daemon &&
-                 ./gradlew :its:runIdeForUiTests --console plain --daemon"
+                 ./gradlew :its:runIdeForUiTests --console plain --daemon &&
+                 cp build/distributions/sonarlint-intellij-hds-7.4.0.1.zip /media/sf_share/"
     alias log='tail -f ./its/build/idea-sandbox/system/log/idea.log'
 
     mvn install:install-file \
